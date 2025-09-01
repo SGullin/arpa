@@ -69,7 +69,7 @@ pub mod stable {
     /// Name of the directory where sql setup commands live.
     pub const SQL_SETUP_DIR: &str = "sql";
     /// Path to the config file.
-    pub const CONFIG_PATH: &str = "config.toml";
+    pub const CONFIG_PATH: &str = "./config.toml";
 
     // --- Behaviour ----------------------------------------------------------
     /// The number of bytes to buffer when reading checksums. 

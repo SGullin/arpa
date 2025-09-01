@@ -46,13 +46,12 @@ pub struct Archivist {
 
 impl Archivist {
     /// Initializes a new connection to the database.
+    /// 
     /// # Errors
     /// Fails if setup data is missing. Forwards errors from `sqlx`.
     pub async fn new() -> std::result::Result<Self, ARPAError> {
-        let config = VolatileConfig::load()
-        .map_err(|_| ARPAError::MissingFileOrDirectory(
-            String::from("config.toml"))
-        )?;
+        info!("Reading \"config.toml\"...");
+        let config = VolatileConfig::load()?;
 
         let pool = PgPoolOptions::new()
             .max_connections(config.database.pool_connections)
@@ -66,10 +65,8 @@ impl Archivist {
         info!("Connected to database!");
 
         // Setup from sql directory
-        let files = std::fs::read_dir(stable::SQL_SETUP_DIR)
-            .map_err(|_| ARPAError::MissingFileOrDirectory(
-                String::from("SQL setup dir"))
-            )?
+        info!("Reading setup dir \"sql/\"...");
+        let files = std::fs::read_dir(stable::SQL_SETUP_DIR)?
             .flat_map(|entry| entry
                 .map(|e| read_to_string(e.path())))
             .flatten()

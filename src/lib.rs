@@ -1,11 +1,10 @@
 //! A pulsar timing and metadata archive developed for argos.
 
 #![warn(
-    // missing_docs,
+    missing_docs,
     clippy::all,
     clippy::pedantic,
     clippy::nursery,
-    // clippy::cargo,
 )]
 #![allow(clippy::must_use_candidate)]
 
