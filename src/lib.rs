@@ -8,6 +8,8 @@
 )]
 #![allow(clippy::must_use_candidate)]
 
+extern crate argos_arpa_item_macro as item_macro;
+
 mod error;
 mod archivist;
 // mod worker;

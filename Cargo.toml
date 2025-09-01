@@ -10,9 +10,9 @@ keywords = ["database", "pulsar"]
 categories = ["science", "database-implementations"]
 
 [dependencies]
+argos-arpa-item-macro = "0.1.0"
 tokio = { version = "1.43.0", features = ["full"] }
 sqlx = { version = "0.8", features = ["postgres", "runtime-tokio", "tls-native-tls", "time", "uuid"] }
-item_macro = { path = "../item_macro" }
 env_logger = "0.11.6"
 log = "0.4.25"
 psrutils = "0.2.4"
