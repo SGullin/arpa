@@ -1,0 +1,176 @@
+
+
+use log::info;
+
+use crate::config::VolatileConfig;
+use crate::external_tools::psrchive;
+use crate::data_types::raw_file::RawFileHeader;
+use crate::{ARPAError, Result};
+use super::DiagnosticOut;
+
+/// Tries to create diagnostic plots.
+/// 
+/// # Errors
+/// Fails if the fils is unreadable or the plotter fails.
+pub fn run(config: &VolatileConfig, file: &str) -> Result<DiagnosticOut> {
+    info!("Creating composite plots for {file}...");
+
+    let tmp = format!("{}/tmp.png", config.paths.temp_dir);
+    let tmpcmd = format!("{tmp}/PNG");
+    let header = RawFileHeader::get(config, file)?;
+    let info = format!(
+        "above:l={}\n\
+        {}    {} ({})\n\
+        Length={:.1} s    BW={:.1} MHz\n\
+        N\\dbin\\u=$nbin    N\\dchan\\u=$nchan    N\\dsub\\u=$nsubint, \
+        above:off=3.5",
+        file,
+        header.telescope, header.receiver, header.backend, 
+        header.length, header.bw,
+    );
+
+    if header.sub_count * header.channel_count == 0 {
+        return Err(ARPAError::DiagnosticPlotBadFile(file.to_string()));
+    }
+    match (header.sub_count > 1, header.channel_count > 1) {
+        (true, true) => plot_all(config, file, &tmpcmd, &info)?,
+        (true, false) => plot_no_freq(config, file, &tmpcmd, &info)?,
+        (false, true) => plot_no_time(config, file, &tmpcmd, &info)?,
+        (false, false) => plot_prof_only(config, file, &tmpcmd, &info)?,
+    }
+
+    Ok(DiagnosticOut::Plot(tmp))
+}
+
+fn plot_all(
+    config: &VolatileConfig, 
+    path: &str, 
+    outcmd: &str, 
+    info: &str
+) -> Result<()> {
+    let args = [
+        "-O", "-j", "D", "-c", "above:c=,x:range=0:2",
+        path, "-D", outcmd,
+        "-p", "flux", "-c", ":0:x:view=0.575:0.95,",
+        "y:view=0.7:0.9,",
+        "subint=I,",
+        "chan=I,",
+        "pol=I,",
+        "x:opt=BCTS,",
+        "x:lab=,",
+        "below:l=",
+        "-p", "freq", "-c", ":1:x:view=0.075:0.45,",
+        "y:view=0.15:0.7,",
+        "subint=I,",
+        "pol=I,",
+        info,
+        "cmap:map=plasma",
+        "-p", "time", "-c", ":2:x:view=0.575:0.95,",
+        "y:view=0.15:0.7,",
+        "chan=I,",
+        "pol=I,",
+        "cmap:map=plasma"
+    ];
+    _ = psrchive(
+        config, 
+        "psrplot", 
+        &args
+    )?;
+    
+    Ok(())
+}
+
+fn plot_no_freq(
+    config: &VolatileConfig, 
+    path: &str, 
+    outcmd: &str, 
+    info: &str
+) -> Result<()> {
+    let args = [
+        "-O", "-j", "D", "-c", "above:c=,x:range=0:2",
+        path, "-D", outcmd,
+        "-p", "flux", "-c", ":0:x:view=0.075:0.95,",
+        "y:view=0.5:0.7,",
+        "subint=I,",
+        "chan=I,",
+        "pol=I,",
+        "x:opt=BCTS,",
+        "x:lab=,",
+        "below:l=,",
+        info,
+        "-p", "time", "-c", ":1:x:view=0.075:0.95,",
+        "y:view=0.15:0.5,",
+        "chan=I,",
+        "pol=I,",
+        "cmap:map=plasma",
+    ];
+    _ = psrchive(
+        config, 
+        "psrplot", 
+        &args
+    )?;
+    
+    Ok(())
+}
+
+fn plot_no_time(
+    config: &VolatileConfig, 
+    path: &str, 
+    outcmd: &str, 
+    info: &str
+) -> Result<()> {
+    let args = [
+        "-O", "-j", "D", "-c", "above:c=,x:range=0:2",
+        path, "-D", outcmd,
+        "-p", "flux", "-c", 
+        &format!(
+            ":0:x:view=0.075:0.95,\
+            y:view=0.5:0.7,\
+            subint=I,\
+            chan=I,\
+            pol=I,\
+            x:opt=BCTS,\
+            x:lab=,\
+            below:l=,{info}",
+        ),
+        "-p", "freq", "-c", 
+        ":1:x:view=0.075:0.95,\
+        y:view=0.15:0.5,\
+        subint=I,\
+        pol=I,\
+        cmap:map=plasma",
+    ];
+    _ = psrchive(
+        config, 
+        "psrplot", 
+        &args
+    )?;
+    
+    Ok(())
+}
+
+fn plot_prof_only(
+    config: &VolatileConfig, 
+    path: &str, 
+    outcmd: &str, 
+    info: &str,
+) -> Result<()> {
+    let args = [
+        "-O", "-j", "D", "-c", "above:c=,x:range=0:2",
+        path, "-D", outcmd,
+        "-p", "flux", "-c", ":0:x:view=0.075:0.95,",
+        "y:view=0.15:0.7,",
+        "subint=I,",
+        "chan=I,",
+        "pol=I,",
+        "below:l=,",
+        info
+    ];
+    _ = psrchive(
+        config, 
+        "psrplot", 
+        &args
+    )?;
+    
+    Ok(())
+}
