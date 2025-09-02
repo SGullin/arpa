@@ -1,8 +1,11 @@
-use item_macro::TableItem;
+//! Data for generated TOAs.
+
 use crate::archivist::table::TableItem;
+use item_macro::TableItem;
 
 #[derive(sqlx::FromRow, TableItem)]
 #[table(Toas)]
+/// TOA information. This comes from `psrchive`.
 pub struct TOAInfo {
     #[derived]
     id: i32,
@@ -11,7 +14,7 @@ pub struct TOAInfo {
     process_id: i32,
     template_id: i32,
     rawfile_id: i32,
-    
+
     // The data -------------------------
     pulsar_id: i32,
     observer_id: i32,
@@ -22,9 +25,7 @@ pub struct TOAInfo {
 }
 
 impl TOAInfo {
-    #![allow(
-        clippy::cast_possible_wrap,
-        clippy::cast_possible_truncation)]
+    #![allow(clippy::cast_possible_wrap, clippy::cast_possible_truncation)]
     /// Extracts `arpa`-relevant information from a `psrutils` struct.
     pub fn extract(
         toa: &psrutils::timfile::TOAInfo,
@@ -52,4 +53,3 @@ impl TOAInfo {
         }
     }
 }
-

@@ -1,13 +1,17 @@
-use crate::config::VolatileConfig;
-use crate::data_types::diagnostics::{DiagnosticFloat, DiagnosticPlot};
-use crate::data_types::raw_file::archive_file;
+//! Diagnostic tools for the pipeline.
+
+use crate::config::Config;
+use crate::data_types::{archive_file, DiagnosticFloat, DiagnosticPlot};
 use crate::{ARPAError, Archivist, Result};
 
-mod snr;
 mod composite;
+mod snr;
 
+/// The value of a diagnostic tool's output, either a plot or a float for now.
 pub enum DiagnosticOut {
+    /// A plot, with the inner argument being the path.
     Plot(String),
+    /// A float value.
     Value(f32),
 }
 
@@ -15,9 +19,9 @@ pub enum DiagnosticOut {
 /// # Errors
 /// Fails if the diagnositc tool fails, or the `archivist` can't do its thing.
 pub async fn run_diagnostic(
-    config: &VolatileConfig, 
+    config: &Config,
     archivist: &mut Archivist,
-    diagnostic: &str, 
+    diagnostic: &str,
     process: i32,
     file: &str,
     directory: &str,
@@ -26,14 +30,14 @@ pub async fn run_diagnostic(
         "snr" => snr::run(config, file),
         "composite" => composite::run(config, file),
 
-        other => Err(ARPAError::UnknownDiagnostic(other.to_string()))
+        other => Err(ARPAError::UnknownDiagnostic(other.to_string())),
     }?;
 
     match out {
-        DiagnosticOut::Plot(mut path) => {            
+        DiagnosticOut::Plot(mut path) => {
             _ = archive_file(
-                config, 
-                &mut path, 
+                config,
+                &mut path,
                 directory,
                 &format!("{diagnostic}.png"),
             )?;
@@ -44,9 +48,9 @@ pub async fn run_diagnostic(
                 diagnostic: diagnostic.to_string(),
                 filepath: path,
             };
-            
+
             archivist.insert(meta).await?;
-        },
+        }
         DiagnosticOut::Value(result) => {
             let meta = DiagnosticFloat {
                 id: 0,
@@ -56,7 +60,7 @@ pub async fn run_diagnostic(
             };
 
             archivist.insert(meta).await?;
-        },
+        }
     }
 
     Ok(())

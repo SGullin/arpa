@@ -1,12 +1,15 @@
+//! Pulsar metadata.
+
 use std::str::FromStr;
 
 use crate::{ARPAError, Table, archivist::TableItem};
 
 #[derive(Debug, sqlx::FromRow, Clone)]
+/// Metadata of a pulsar.
 pub struct PulsarMeta {
     /// Mandatory id.
     pub id: i32,
-    
+
     /// What this pulsar is commonly called.
     pub alias: String,
     /// The J name, if different from the alias.
@@ -19,33 +22,33 @@ pub struct PulsarMeta {
     /// The declination, as a fully specified string; "±DD:MM:SS.F*".
     pub j2000_dec: Option<String>,
 
-    /// The id of a master ephemeride, if it has any set. 
+    /// The id of a master ephemeride, if it has any set.
     pub master_parfile_id: Option<i32>,
 }
 impl PulsarMeta {
     /// Verifies the data is valid.
     /// # Errors
-    /// Each field, except for `master_partfile_id`, is verified, and any 
+    /// Each field, except for `master_partfile_id`, is verified, and any
     /// errors surface here.
     pub fn verify(&mut self) -> Result<(), ARPAError> {
         if !Self::validate_name(&self.alias) {
             return Err(ARPAError::MalformedInput(format!(
-                "\"{}\" is not a valid pulsar alias", 
-                self.alias)
-            ));
+                "\"{}\" is not a valid pulsar alias",
+                self.alias
+            )));
         }
         if let Some(j) = &self.j_name {
             if !Self::validate_name(j) {
                 return Err(ARPAError::MalformedInput(format!(
-                    "\"{j}\" is not a valid pulsar J name")
-                ));
+                    "\"{j}\" is not a valid pulsar J name"
+                )));
             }
         }
         if let Some(b) = &self.b_name {
             if !Self::validate_name(b) {
                 return Err(ARPAError::MalformedInput(format!(
-                    "\"{b}\" is not a valid pulsar B name")
-                ));
+                    "\"{b}\" is not a valid pulsar B name"
+                )));
             }
         }
         if let Some(ra) = &self.j2000_ra {
@@ -66,9 +69,9 @@ impl PulsarMeta {
         Ok(())
     }
 
-    /// A null meta. 
+    /// A null meta.
     /// # Notes
-    /// This is not a valid entry, so it needs to be verified before insertion. 
+    /// This is not a valid entry, so it needs to be verified before insertion.
     pub const fn null() -> Self {
         Self {
             id: 0,
@@ -82,21 +85,21 @@ impl PulsarMeta {
     }
 
     /// Tries to read the information from a slice of `&str`s.
-    /// 
+    ///
     /// Each line must contain an `alias`, and may contain `j_name`, `b_name`,
-    /// `ra`, and `dec`, in that order. 
-    /// 
+    /// `ra`, and `dec`, in that order.
+    ///
     /// If you want to skip a field, enter a `.` in its place.
-    /// 
+    ///
     /// # Errors
     /// Fails if the slice is empty or the verification at the end fails.
-    /// 
+    ///
     /// # Examples
     /// ```
-    /// # use arpa::data_types::pulsar_meta::PulsarMeta;
+    /// # use argos_arpa::data_types::pulsar_meta::PulsarMeta;
     /// let line = vec!["alias", ".", "b9000+01"];
     /// let pm = PulsarMeta::from_strs(&line).unwrap();
-    /// 
+    ///
     /// assert_eq!(pm.alias, "alias");
     /// assert_eq!(pm.j_name, None);
     /// assert_eq!(pm.b_name, Some("b9000+01".into()));
@@ -104,10 +107,10 @@ impl PulsarMeta {
     pub fn from_strs(parts: &[&str]) -> Result<Self, ARPAError> {
         let mut iter = parts.iter();
 
-        let Some(&alias) = iter.next() else { 
+        let Some(&alias) = iter.next() else {
             return Err(ARPAError::MalformedInput(
-                "pulsar line is empty".into()
-            ))
+                "pulsar line is empty".into(),
+            ));
         };
 
         let mut meta = Self::null();
@@ -122,8 +125,10 @@ impl PulsarMeta {
 
         for r in refs {
             if let Some(&text) = iter.next() {
-                if text == "." { continue; }
-                *r = Some(text.to_string()); 
+                if text == "." {
+                    continue;
+                }
+                *r = Some(text.to_string());
             }
         }
 
@@ -133,9 +138,10 @@ impl PulsarMeta {
     }
 
     fn validate_name(name: &str) -> bool {
-        name.chars().all(|c| c.is_alphanumeric() || ['+', '-'].contains(&c)) && 
-        !name.is_empty() && 
-        name.len() <= 20
+        name.chars()
+            .all(|c| c.is_alphanumeric() || ['+', '-'].contains(&c))
+            && !name.is_empty()
+            && name.len() <= 20
     }
 }
 impl TableItem for PulsarMeta {
@@ -176,12 +182,10 @@ impl TableItem for PulsarMeta {
     }
 
     fn unique_values(&self) -> String {
-        self.j_name
-            .as_ref()
-            .map_or_else(
-                || format!("alias='{}'", self.alias), 
-                |jn| format!("alias='{}' or j_name='{}'", self.alias, jn)
-            )
+        self.j_name.as_ref().map_or_else(
+            || format!("alias='{}'", self.alias),
+            |jn| format!("alias='{}' or j_name='{}'", self.alias, jn),
+        )
     }
 }
 impl FromStr for PulsarMeta {
@@ -190,8 +194,8 @@ impl FromStr for PulsarMeta {
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         Self::from_strs(
             &s.split_whitespace()
-            .filter(|s| !s.is_empty())
-            .collect::<Vec<_>>()
+                .filter(|s| !s.is_empty())
+                .collect::<Vec<_>>(),
         )
     }
 }

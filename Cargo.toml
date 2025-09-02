@@ -1,6 +1,6 @@
 [package]
 name = "argos-arpa"
-description = "A pulsar data archive for the ARGOS project (https://argos-telescope.eu/})."
+description = "A pulsar data archive for the ARGOS project (https://argos-telescope.eu/)."
 authors = ["Samuel Gullin <gullin@ia.forth.gr>"]
 license = "MIT"
 version = "0.3.0"

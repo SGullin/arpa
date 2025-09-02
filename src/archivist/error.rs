@@ -16,29 +16,32 @@ pub enum ArchivistError {
 impl std::fmt::Display for ArchivistError {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
-            Self::Sqlx(error) => write!(f, 
-                "[sqlx] {error}", 
+            Self::Sqlx(error) => write!(f, "[sqlx] {error}",),
+
+            Self::EntryAlreadyExists(key, table, id) => write!(
+                f,
+                "({key}) conflicts with preexisting entry (id = {id}) in {table}",
             ),
 
-            Self::EntryAlreadyExists(key, table, id) => write!(f, 
-                "({key}) conflicts with preexisting entry (id = {id:x}) in {table}",
-            ),
-
-            Self::NoTransactionToCommit => write!(f, 
+            Self::NoTransactionToCommit => write!(
+                f,
                 "Archivist was asked to commit a transaction, but none had \
                 begun."
             ),
-            Self::NoTransactionToRollback => write!(f, 
+            Self::NoTransactionToRollback => write!(
+                f,
                 "Archivist was asked to rollback a transaction, but none had \
                 begun."
             ),
-            Self::TransactionAlreadyLive => write!(f, 
+            Self::TransactionAlreadyLive => write!(
+                f,
                 "Archivist was asked to start a transaction, but one is \
                 already live."
             ),
 
-            Self::MissingID(table, id) => write!(f, 
-                "There is no entry with id {id:x} in table \"{table}\".", 
+            Self::MissingID(table, id) => write!(
+                f,
+                "There is no entry with id {id} in table \"{table}\".",
             ),
         }
     }
