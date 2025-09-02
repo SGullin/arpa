@@ -96,7 +96,7 @@ impl PulsarMeta {
     ///
     /// # Examples
     /// ```
-    /// # use argos_arpa::pulsar_meta::PulsarMeta;
+    /// # use argos_arpa::data_types::PulsarMeta;
     /// let line = vec!["alias", ".", "b9000+01"];
     /// let pm = PulsarMeta::from_strs(&line).unwrap();
     ///
