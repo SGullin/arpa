@@ -7,11 +7,11 @@
 
 *This is still under development.*
 
-Keeps track of TOAs and related things. This is mostly based off of TOASTER by Patrick Lazarus.
+Keeps track of TOAs and related things. This is mostly based off of [TOASTER](https://github.com/plazar/TOASTER) by Patrick Lazarus.
 
 Most informations are split into data and metadata, e.g. `toa` and `toa_meta`. Parfiles and raw files are kept as files somewhere, and so only metadata is put in the DB.
 
-## Usage
+## Setup
 Add the library as such:
 ```
 cargo add argos-arpa
@@ -19,6 +19,9 @@ cargo add argos-arpa
 Alternatively, fork either this repo or the [GUI](#gui).
 
 To get started, you need to have a folder of `sql` files creating the tables you reference in the rust code, and a config `.toml` file. Both of their paths need to be given to `Archivist`'s constructor.
+
+### SQL
+This crate uses PostgreSQL, which means that you need to have such a DB to connect to if you want to use `arpa`. For testing on MacOS, there is e.g. https://postgresapp.com.
 
 ### New tables
 If you fork this and want to add more tables, the [derive macro](https://github.com/SGullin/arpa-item-macro) might come in handy. The only necessities is that 
@@ -34,5 +37,8 @@ There is a GUI application developed for internal use, publicly available at htt
 `argos-arpa` is distributed under the terms of the [MIT License](LICENSE-MIT).
 
 ## Changelog
+### 0.3.1
+ - Removed compicating use of config module.
+
 ### 0.3.0
  - Prepared as library.
