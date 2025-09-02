@@ -15,7 +15,7 @@ pub struct TemplateMeta {
 
     /// ID of pulsar it belongs to.
     pub pulsar_id: i32,
-    
+
     /// Path to file.
     #[unique]
     pub file_path: String,

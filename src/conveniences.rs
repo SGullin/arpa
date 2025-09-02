@@ -1,4 +1,4 @@
-//! A collection of convenience funtions. Might dissolve into separate modules 
+//! A collection of convenience funtions. Might dissolve into separate modules
 //! in the future.
 
 use std::{

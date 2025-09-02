@@ -1,7 +1,7 @@
 //! Diagnostic tools for the pipeline.
 
 use crate::config::Config;
-use crate::data_types::{archive_file, DiagnosticFloat, DiagnosticPlot};
+use crate::data_types::{DiagnosticFloat, DiagnosticPlot, archive_file};
 use crate::{ARPAError, Archivist, Result};
 
 mod composite;

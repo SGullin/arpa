@@ -1,5 +1,8 @@
+use crate::{
+    ARPAError, Result, config::Config, conveniences::parse,
+    external_tools::psrchive,
+};
 use psrutils::data_types::{J2000Dec, J2000Ra, Mjd};
-use crate::{config::Config, conveniences::parse, external_tools::psrchive, ARPAError, Result};
 
 #[derive(Debug)]
 #[allow(missing_docs)]

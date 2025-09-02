@@ -161,7 +161,7 @@ impl Archivist {
     /// # Errors
     /// Fails if there is a collision. Forwards errors from `sqlx`.
     pub async fn assert_unique<T>(&self, item: &T) -> Result<()>
-    where 
+    where
         T: TableItem,
     {
         let uniques = item.unique_values();
@@ -282,20 +282,14 @@ impl Archivist {
         self.assert_id(T::TABLE, id).await?;
 
         let values = T::insert_columns()
-        .split(',')
-        .zip(item
-            .insert_values()
-            .split(','))
-        .map(|(col, val)| format!("{col}={val}"))
-        .collect::<Vec<_>>()
-        .join(",");
-    
-        let query = format!(
-            "update {} set {} where id={}",
-            T::TABLE,
-            values,
-            id,
-        );
+            .split(',')
+            .zip(item.insert_values().split(','))
+            .map(|(col, val)| format!("{col}={val}"))
+            .collect::<Vec<_>>()
+            .join(",");
+
+        let query =
+            format!("update {} set {} where id={}", T::TABLE, values, id,);
 
         info!("q {query}");
 

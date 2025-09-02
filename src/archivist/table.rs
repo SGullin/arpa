@@ -39,8 +39,8 @@ impl std::fmt::Display for Table {
     }
 }
 
-/// This trait is what makes the `archivist` work. Any struct expected to go 
-/// into an `sql` table needs to implement this. 
+/// This trait is what makes the `archivist` work. Any struct expected to go
+/// into an `sql` table needs to implement this.
 pub trait TableItem:
     for<'a> sqlx::FromRow<'a, sqlx::postgres::PgRow>
     + std::marker::Send

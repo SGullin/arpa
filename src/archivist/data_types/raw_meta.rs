@@ -1,11 +1,17 @@
 //! Metadata of a stored rawfile.
 
-use std::fs::File;
-use std::os::unix::fs::MetadataExt;
-use crate::{archivist::table::TableItem, config::Config, conveniences::{assert_exists, check_file_equality, compute_checksum}, data_types::{ObsSystem, PulsarMeta}, ARPAError, Archivist, Result};
+use crate::{
+    ARPAError, Archivist, Result,
+    archivist::table::TableItem,
+    config::Config,
+    conveniences::{assert_exists, check_file_equality, compute_checksum},
+    data_types::{ObsSystem, PulsarMeta},
+};
 use item_macro::TableItem;
 use log::{debug, info, warn};
 use sqlx::{prelude::FromRow, types::uuid};
+use std::fs::File;
+use std::os::unix::fs::MetadataExt;
 
 mod header;
 pub use header::RawFileHeader;
@@ -129,7 +135,6 @@ impl RawMeta {
         })
     }
 }
-
 
 /// Puts the file in a good spot. To speed up copying and checksum calculations
 /// some thigns are done concurrently.
