@@ -36,9 +36,14 @@ There is a GUI application developed for internal use, publicly available at htt
 # License
 `argos-arpa` is distributed under the terms of the [MIT License](LICENSE-MIT).
 
+The ARGOS logo belongs to the ARGOS Consortium.
+
 ## Changelog
+### 0.3.2
+ - 
+
 ### 0.3.1
- - Removed compicating use of config module.
+ - Removed complicating use of config module.
 
 ### 0.3.0
  - Prepared as library.

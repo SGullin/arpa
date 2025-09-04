@@ -32,9 +32,8 @@ impl TemplateMeta {
     pub fn new(
         file_path: String,
         pulsar_id: i32,
-        block_size: usize,
     ) -> std::io::Result<Self> {
-        let u128 = compute_checksum(&file_path, block_size, true)?;
+        let u128 = compute_checksum(&file_path, true)?;
         let checksum = uuid::Uuid::from_u128(u128);
 
         Ok(Self {

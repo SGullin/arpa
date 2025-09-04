@@ -119,7 +119,6 @@ impl RawMeta {
             info!("Currently set to not archive raw files...");
             compute_checksum(
                 &file_path,
-                archivist.config().behaviour.checksum_block_size,
                 true,
             )?
         };
@@ -155,11 +154,10 @@ pub fn archive_file(
         warn!("File is already where it should be ({source}).");
         return Ok(0);
     }
-    let block_size = config.behaviour.checksum_block_size;
 
     std::fs::create_dir_all(directory)?;
     if std::fs::exists(&path)? {
-        return check_file_equality(source, path, block_size);
+        return check_file_equality(source, path);
     }
 
     // Both of these tasks can take some time, so they might as well run
@@ -170,7 +168,7 @@ pub fn archive_file(
     let copy_handle = std::thread::spawn(|| std::fs::copy(sc, dc));
     let sc = source.clone();
     let src_checksum_handle =
-        std::thread::spawn(move || compute_checksum(sc, block_size, true));
+        std::thread::spawn(move || compute_checksum(sc, true));
 
     // If it turns out the copy is faster than the src checksum, we can start
     // the dst checksum early. If not, we haven't lost anyhting here.
@@ -180,7 +178,7 @@ pub fn archive_file(
 
     let dc = path.clone();
     let dst_checksum_handle =
-        std::thread::spawn(move || compute_checksum(dc, block_size, false));
+        std::thread::spawn(move || compute_checksum(dc, false));
 
     let src_size = File::open(&source)?.metadata()?.size();
 

@@ -54,13 +54,6 @@ pub struct Behaviour {
 
     /// The diagnostics to perform on cooked raw files.
     pub diagnostics: Vec<String>,
-
-    /// The number of bytes to buffer when reading checksums.
-    ///
-    /// FYI, changing this after deployment will break compatibility with any
-    /// previous files. I _strongly_ suggest you find a favourite value before
-    /// then.
-    pub checksum_block_size: usize,
 }
 
 #[derive(Deserialize)]

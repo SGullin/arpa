@@ -10,11 +10,17 @@ use std::{
     str::FromStr,
     time::Instant,
 };
+use crate::{ARPAError, Result};
 
 use log::{info, warn};
 use md5::Digest;
 
-use crate::{ARPAError, Result};
+/// The number of bytes to buffer when reading checksums.
+///
+/// FYI, changing this after deployment will break compatibility with any
+/// previous files. This is why it is kept as a constant instead of in the 
+/// config.
+const BLOCK_SIZE: usize = 16*16*8192;
 
 /// Checks a path for a file.
 /// # Errors
@@ -130,7 +136,6 @@ where
 /// Possible io failure.
 pub fn compute_checksum(
     path: impl AsRef<Path>,
-    block_size: usize,
     verbose: bool,
 ) -> std::io::Result<u128> {
     let t0 = Instant::now();
@@ -142,10 +147,10 @@ pub fn compute_checksum(
     let mut hasher = md5::Md5::new();
 
     // To show progress
-    let len = (size as f32 / block_size as f32).max(1.0);
+    let len = (size as f32 / BLOCK_SIZE as f32).max(1.0);
     let mut read = 0.0;
 
-    let mut buffer = vec![0u8; block_size];
+    let mut buffer = vec![0u8; BLOCK_SIZE];
     while reader.read(&mut buffer)? > 0 {
         hasher.update(&buffer);
 
@@ -170,7 +175,6 @@ pub fn compute_checksum(
 pub(crate) fn check_file_equality(
     source: &str,
     path: String,
-    block_size: usize,
 ) -> Result<u128> {
     warn!("File already exists: '{path}'! Will not overwrite.");
     let src_size = File::open(source)?.metadata()?.size();
@@ -183,9 +187,9 @@ pub(crate) fn check_file_equality(
 
     let sc = source.to_string();
     let src_checksum_handle =
-        std::thread::spawn(move || compute_checksum(sc, block_size, true));
+        std::thread::spawn(move || compute_checksum(sc, true));
     let dst_checksum_handle =
-        std::thread::spawn(move || compute_checksum(path, block_size, false));
+        std::thread::spawn(move || compute_checksum(path, false));
 
     let src_checksum = src_checksum_handle
         .join()

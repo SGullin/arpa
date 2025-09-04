@@ -248,6 +248,8 @@ impl Archivist {
     /// Update an entry with the given `id` in the given `table`. `value` in
     /// this case is a string like `number = 2`, i.e. both the column and the
     /// actual value.
+    /// 
+    /// Remember that string values need to be incased in single quotes.
     ///
     /// # Errors
     /// Forwards errors from `sqlx`.
