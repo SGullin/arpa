@@ -384,7 +384,8 @@ impl Archivist {
         Ok(self.current_transaction.as_mut().unwrap())
     }
 
-    pub(crate) const fn config(&self) -> &Config {
+    /// The current configuration.
+    pub const fn config(&self) -> &Config {
         &self.config
     }
 }

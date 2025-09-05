@@ -49,7 +49,7 @@ impl RawFileHeader {
             "basis", "backend", "mjd",
         ];
 
-        let values = get_header_items(config, file_path, &keys)?;
+        let values = Self::get_items(config, file_path, &keys)?;
 
         let mut i = 0;
         let header = Self {
@@ -150,25 +150,29 @@ impl RawFileHeader {
             self.backend.to_lowercase(),
         )
     }
+    
+    /// Calls `psrchive::vap` to get header items.
+    /// 
+    /// # Errors
+    /// Fails only if `psrchive` can't be called.
+    pub fn get_items(
+        config: &Config,
+        path: &str,
+        keys: &[&str],
+    ) -> Result<Vec<String>> {
+        let column_string = keys.join(",");
+        let result = psrchive(config, "vap", &["-n", "-c", &column_string, path])?;
+        
+        // We get a string of values
+        let values = result
+            .split_whitespace()
+            .map(str::to_string)
+            .collect::<Vec<_>>();
+        
+        if values.len() != keys.len() + 1 {
+            return Err(ARPAError::VapKeyCount(keys.len() + 1, values.len()));
+        }
+        
+        Ok(values)
 }
-
-fn get_header_items(
-    config: &Config,
-    path: &str,
-    keys: &[&str],
-) -> Result<Vec<String>> {
-    let column_string = keys.join(",");
-    let result = psrchive(config, "vap", &["-n", "-c", &column_string, path])?;
-
-    // We get a string of values
-    let values = result
-        .split_whitespace()
-        .map(str::to_string)
-        .collect::<Vec<_>>();
-
-    if values.len() != keys.len() + 1 {
-        return Err(ARPAError::VapKeyCount(keys.len() + 1, values.len()));
-    }
-
-    Ok(values)
 }

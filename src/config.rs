@@ -68,6 +68,7 @@ pub struct Paths {
     /// The root dir for all diagnostics.
     pub diagnostics_dir: String,
 }
+
 impl Config {
     /// Reads config from a `.toml` file.
     ///

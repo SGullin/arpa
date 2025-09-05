@@ -23,6 +23,10 @@ To get started, you need to have a folder of `sql` files creating the tables you
 ### SQL
 This crate uses PostgreSQL, which means that you need to have such a DB to connect to if you want to use `arpa`. For testing on MacOS, there is e.g. https://postgresapp.com.
 
+## Usage
+### Debugging
+`arpa` makes frequent use of the [`log` crate](https://crates.io/crates/log), and so it is suggested to use [`env_logger`](https://crates.io/crates/env_logger) or similar to debug.
+
 ### New tables
 If you fork this and want to add more tables, the [derive macro](https://github.com/SGullin/arpa-item-macro) might come in handy. The only necessities is that 
  1) the struct contains a field `id: i32`; and

@@ -45,7 +45,7 @@ impl RawMeta {
     ///  - the header can't be read;
     ///  - the observation system is missing;
     ///  - the `archivist` encounters an error.
-    pub async fn prepare_raw_meta(
+    pub async fn parse(
         archivist: &mut Archivist,
         path: &str,
     ) -> Result<Self> {
@@ -125,7 +125,7 @@ impl RawMeta {
 
         let checksum = uuid::Uuid::from_u128(checksum);
 
-        Ok(RawMeta {
+        Ok(Self {
             id: 0,
             file_path,
             checksum,
@@ -190,12 +190,13 @@ pub fn archive_file(
         .map_err(|err| ARPAError::JoinThread(format!("{err:?}")))??;
 
     if src_checksum != dst_checksum || src_size != dst_size {
-        return Err(ARPAError::FileCopy(
-            src_checksum,
-            dst_checksum,
-            src_size,
-            dst_size,
-        ));
+        // return Err(ARPAError::FileCopy(
+        //     src_checksum,
+        //     dst_checksum,
+        //     src_size,
+        //     dst_size,
+        // ));
+        return Err(ARPAError::ChecksumFail(path));
     }
 
     if config.behaviour.move_rawfiles {
