@@ -13,16 +13,17 @@ use crate::{ARPAError, Result};
 pub fn run(config: &Config, file: &str) -> Result<DiagnosticOut> {
     info!("Creating composite plots for {file}...");
 
+    let fname = file.rfind('/').map_or(file, |i| &file[i+1..]);
     let tmp = format!("{}/tmp.png", config.paths.temp_dir);
     let tmpcmd = format!("{tmp}/PNG");
     let header = RawFileHeader::get(config, file)?;
     let info = format!(
-        "above:l={}\n\
+        "above:l='{}\n\
         {}    {} ({})\n\
         Length={:.1} s    BW={:.1} MHz\n\
-        N\\dbin\\u=$nbin    N\\dchan\\u=$nchan    N\\dsub\\u=$nsubint, \
+        N\\dbin\\u=$nbin    N\\dchan\\u=$nchan    N\\dsub\\u=$nsubint',\
         above:off=3.5",
-        file,
+        fname,
         header.telescope,
         header.receiver,
         header.backend,

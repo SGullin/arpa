@@ -8,14 +8,19 @@
 
 use std::{process::Command, time::Instant};
 
-use log::{debug, error, info, warn};
+use log::{debug, error, warn};
 use psrutils::{error::PsruError, timfile::TOAInfo as TOA};
-use crate::{config::Config, conveniences::{assert_exists, compute_checksum, display_elapsed_time, parse}, data_types::{DiagnosticPlot, ParMeta, ProcessInfo, PulsarMeta, RawFileHeader, RawMeta, TOAInfo, TemplateMeta}, diagnostics::run_diagnostic, external_tools::psrchive, ARPAError, Archivist};
+use crate::{config::Config, conveniences::{assert_exists, compute_checksum, parse}, data_types::{DiagnosticPlot, ParMeta, ProcessInfo, PulsarMeta, RawFileHeader, RawMeta, TOAInfo, TemplateMeta}, diagnostics::run_diagnostic, external_tools::psrchive, ARPAError, Archivist};
 
 mod arguments;
+mod progress;
 pub use arguments::{parse_input_raw, parse_input_ephemeride, parse_input_template};
+pub use progress::Status;
 
 /// Runs the toa-generation pipeline.
+/// 
+/// The `status_callback` is just for information on the progress of the 
+/// pipeline, the minimal (informing) case would be `|s: Status| s.log`.
 /// 
 /// # Notes
 /// While it is possible to create the different `meta`s without uploading them
@@ -31,31 +36,23 @@ pub use arguments::{parse_input_raw, parse_input_ephemeride, parse_input_templat
 ///  - the database information is out of date.
 /// 
 /// It should not fail because of bad luck though :)
-pub async fn cook(
+pub async fn cook<F: Fn(Status)+Send+Sync>(
     archivist: &mut Archivist,
     raw: RawMeta,
     ephemeride: Option<ParMeta>,
     template: TemplateMeta,
+    diagnostics: bool,
+    status_callback: F,
 ) -> Result<(), ARPAError> {
     let start = Instant::now();
     let pulsar_name = archivist.get::<PulsarMeta>(raw.pulsar_id).await?.alias;
 
-    info!(
-        "Cooking with the following:\
-        \n * Raw file:   {}\
-        \n               id = {}\
-        \n * Pulsar:     {} \
-        \n               id = {}\
-        \n * Ephemeride: {}\
-        \n * Template:   id = {}\n",
-        raw.file_path, raw.id,
-        pulsar_name, raw.pulsar_id,
-        ephemeride.as_ref().map_or_else(
-            || "(None)\n".into(), 
-            |e| format!("{}\n               id = {}", e.file_path, e.id),
-        ),
-        template.id,
-    );
+    status_callback(Status::Starting {
+        raw: (raw.file_path.clone(), raw.id),
+        pulsar: (pulsar_name, raw.pulsar_id),
+        ephemeride: ephemeride.clone().map(|e| (e.file_path, e.id)),
+        template: template.id,
+    });
 
     let user_id = 0;
     let new_path = format!(
@@ -68,12 +65,15 @@ pub async fn cook(
         &raw,
         ephemeride.as_ref(),
         &new_path,
+        &status_callback,
     )?;
 
     let toa_meta = generate_toas(
         archivist.config(),
         &template,
         &new_path,
+        diagnostics,
+        &status_callback,
     )?;
 
     archivist.start_transaction().await?;
@@ -85,20 +85,23 @@ pub async fn cook(
         &raw,
         ephemeride.as_ref(),
         &template,
+        &status_callback,
     ).await?;
 
     // > Create diagnostics & register plots ------------------------------
-    do_diagnostics(
-        archivist,
-        &new_path,
-        process_id,
-        toa_meta,
-        toa_ids,
-    ).await?;
-    
+    if diagnostics {
+        do_diagnostics(
+            archivist,
+            &new_path,
+            process_id,
+            toa_meta,
+            toa_ids,
+            &status_callback,
+        ).await?;
+    }
     archivist.commit_transaction().await?;
 
-    info!("Finished in {}", display_elapsed_time(start));
+    status_callback(Status::Finished(start.elapsed()));
     Ok(())
 }
 
@@ -111,18 +114,23 @@ struct TOAMeta {
     secs: u32,
 }
 
-fn manipulate(
+fn manipulate<F: Fn(Status)>(
     config: &Config,
     raw: &RawMeta,
     ephemeride: Option<&ParMeta>,
     adjust_path: &str,
+    status_callback: F,
 ) -> Result<(), ARPAError> {
     // Make a new file for adjusting
-    debug!("Copying from {} to {}", raw.file_path, adjust_path);
+    status_callback(Status::Copying (
+        raw.file_path.clone(),
+        adjust_path.to_string(),
+    ));
     std::fs::copy(&raw.file_path, adjust_path)?;
 
     // > If parfile: reinstall ephemerides with pam -----------------------
     if let Some(par) = ephemeride {
+        status_callback(Status::InstallingEphemeride);
         // Threre's no output...
         _ = psrchive(
             config,
@@ -137,22 +145,23 @@ fn manipulate(
         adjust_path, 
         1,    4, 
         None, None,
+        status_callback,
     )
 }
 
-fn manipulate_pam(
+fn manipulate_pam<F: Fn(Status)>(
     config: &Config,
     in_path: &str,
     n_subints: usize,
     n_channels: usize,
     set_n_bins: Option<usize>,
     set_t_subints: Option<usize>,
+    status_callback: F,
 ) -> Result<(), ARPAError> {
-    debug!("Manipulating file...");
-
     // We need to copy in->out. pam will just say "no filenames were specified"
     // if a file is specified, but doesn't exist. I guess it works in-place
     // std::fs::copy(in_path, out_path)?;
+    status_callback(Status::Manipulating);
 
     let mut args = vec![
         "-m".to_string(),
@@ -177,12 +186,14 @@ fn manipulate_pam(
 }
 
 #[allow(clippy::cast_possible_truncation, clippy::cast_sign_loss)]
-fn generate_toas(
+fn generate_toas<F: Fn(Status)>(
     config: &Config,
     template: &TemplateMeta,
     manip_path: &str,
+    plot: bool,
+    status_callback: F,
 ) -> Result<TOAMeta, ARPAError> {
-    info!("Generating TOAs...");
+    status_callback(Status::VerifyingTemplate);
 
     // Double check cheksum
     let checksum = compute_checksum(&template.file_path, true)?;
@@ -190,7 +201,9 @@ fn generate_toas(
         return Err(ARPAError::ChecksumFail(template.file_path.clone()));
     }
 
-    let args = [
+    status_callback(Status::GeneratingTOAs);
+    let plot_file = format!("{}/toa_diag.png/PNG", config.paths.temp_dir);
+    let mut args = vec![
         "-f",
         "tempo2",
         "-A",
@@ -199,11 +212,16 @@ fn generate_toas(
         &template.file_path,
         "-C",
         "gof length bw nbin nchan nsubint",
-        // "-t", // plot
-        // "-K", //plot device
-        // &format!("{}/toa_diag.png/PNG", config.paths.temp_dir),
-        manip_path,
     ];
+
+    if plot {
+        args.append(&mut vec![
+            "-t", // plot
+            "-K", //plot device
+            &plot_file,
+        ]);
+    }
+    args.push(manip_path);
 
     let result = psrchive(config, "pat", &args)?;
     if !result.starts_with("FORMAT 1") {
@@ -223,6 +241,8 @@ fn generate_toas(
     let mut toas: Vec<String> = result.lines().map(ToString::to_string).collect();
     toas.remove(0); // The format specifier
 
+    status_callback(Status::GotTOAs(toas.len()));
+
     Ok(TOAMeta {
         toas,
         name: header[3].clone(),
@@ -233,15 +253,16 @@ fn generate_toas(
     })
 }
 
-async fn archive_toas(
+async fn archive_toas<F: Fn(Status)>(
     archivist: &mut Archivist, 
     toa_meta: &TOAMeta,
     user_id: i32, 
     raw: &RawMeta, 
     ephemeride: Option<&ParMeta>, 
     template: &TemplateMeta, 
+    status_callback: F,
 ) -> Result<(i32, Vec<i32>), ARPAError> {
-    debug!("Inserting process info...");
+    status_callback(Status::LoggingProcess);
     let meta = ProcessInfo::new(
         user_id,
         raw,
@@ -254,7 +275,7 @@ async fn archive_toas(
     let process_id = archivist.insert(meta).await?;
 
     // > Parse the output of psrchive::pat and insert toas ----------------
-    debug!("Parsing toas...");
+    status_callback(Status::ParsingTOAs);
     let toas = toa_meta
         .toas
         .iter()
@@ -273,25 +294,26 @@ async fn archive_toas(
     for toa in toas {
         ids.push(archivist.insert(toa).await?);
     }
-    info!(
-        "Uploaded {} TOA{}!",
-        ids.len(),
-        if ids.len() > 1 { "s" } else { "" }
-    );
+    status_callback(Status::ArchivedTOAs(ids.len()));
 
     Ok((process_id, ids))
 }
 
-async fn do_diagnostics(
+async fn do_diagnostics<F: Fn(Status)>(
     archivist: &mut Archivist,
     adjust_path: &str,
     process_id: i32,
     toa_meta: TOAMeta,
     toa_ids: Vec<i32>,
+    status_callback: F,
 ) -> Result<(), ARPAError> {
-    info!("Creating diagnostics...");
+    status_callback(Status::Diagnosing(
+        archivist.config().behaviour.diagnostics.len()
+    ));
+
     let header = RawFileHeader::get(archivist.config(), adjust_path)?;
     let dir = header.get_intended_directory(archivist.config());
+    
     // We put the diagnostic together with the rawfile
     let diag_path = format!("{dir}/process{process_id}");
     // And add a symlink at the top
@@ -305,14 +327,21 @@ async fn do_diagnostics(
         .output()?;
 
     let diagnostics = archivist.config().behaviour.diagnostics.clone();
-    for diagnostic in &diagnostics {
-        if let Err(err) = run_diagnostic(
+    for diagnostic in diagnostics {
+        let status = run_diagnostic(
             archivist,
-            diagnostic,
+            &diagnostic,
             process_id,
             adjust_path,
             &diag_path,
-        ).await {
+        ).await;
+
+        status_callback(Status::FinishedDiagnostic{
+            diagnostic,
+            passed: status.is_ok(),
+        });
+
+        if let Err(err) = status {
             error!("{err}\n\nContinuing anyway...");
         }
     }
@@ -323,7 +352,7 @@ async fn do_diagnostics(
         archivist.config().paths.temp_dir,
     );
 
-    if let Err(_) = assert_exists(&toa_diag_path) {
+    if assert_exists(toa_diag_path).is_err() {
         warn!("TOA diagnostic plot not found.");
         return Ok(())
     }
@@ -351,7 +380,7 @@ async fn do_diagnostics(
         archivist.insert(meta).await?;
     }
 
-    info!("Inserted {} plots!", toa_ids.len());
+    status_callback(Status::ArchivedTOAPlots(toa_ids.len()));
 
     Ok(())
 }

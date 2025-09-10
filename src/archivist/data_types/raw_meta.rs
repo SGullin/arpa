@@ -16,7 +16,7 @@ use std::os::unix::fs::MetadataExt;
 mod header;
 pub use header::RawFileHeader;
 
-#[derive(FromRow, Clone, TableItem)]
+#[derive(Debug, FromRow, Clone, TableItem)]
 #[table(RawMetas)]
 /// Metadata of a stored raw file.
 pub struct RawMeta {

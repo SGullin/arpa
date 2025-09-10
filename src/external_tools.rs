@@ -25,7 +25,14 @@ pub fn psrchive(config: &Config, tool: &str, args: &[impl AsRef<OsStr>]) -> Resu
         format!("{}/{}", config.paths.psrchive, tool)
     };
 
-    let output = Command::new(tool_path).args(args).output()?;
+    // let output = Command::new(tool_path).args(args).output()?;
+    let output = Command::new("/bin/sh")
+        .arg("-c")
+        .arg(args.iter().fold(
+            tool_path, 
+            |acc, a|  acc + " " + &a.as_ref().to_string_lossy()
+        ))
+        .output()?;
 
     // if !output.status. {
     //     return Err(ARPAError::ToolFailure(

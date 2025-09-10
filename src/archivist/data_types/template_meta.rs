@@ -5,7 +5,7 @@ use crate::conveniences::compute_checksum;
 use item_macro::TableItem;
 use sqlx::{prelude::FromRow, types::uuid};
 
-#[derive(FromRow, Clone, TableItem)]
+#[derive(Debug, FromRow, Clone, TableItem)]
 #[table(TemplateMetas)]
 /// Metadata for a template file.
 pub struct TemplateMeta {

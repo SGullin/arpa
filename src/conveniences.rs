@@ -4,11 +4,11 @@
 use std::{
     any::type_name,
     fs::File,
-    io::{BufReader, Read, Write, stdout},
+    io::{stdout, BufReader, Read, Write},
     os::unix::fs::MetadataExt,
     path::Path,
     str::FromStr,
-    time::Instant,
+    time::{Duration, Instant},
 };
 use crate::{ARPAError, Result};
 
@@ -60,9 +60,8 @@ pub fn progress_bar(message: &str, progress: f32, size: usize) {
 }
 
 /// Forms a string from the elapsed time, mainly to get easily readable times.
-pub fn display_elapsed_time(start: std::time::Instant) -> String {
-    let dur = start.elapsed();
-    let micros = dur.as_micros();
+pub fn display_elapsed_time(duration: Duration) -> String {
+    let micros = duration.as_micros();
 
     if micros < 1000 {
         return format!("{micros} μs");
@@ -161,7 +160,7 @@ pub fn compute_checksum(
     }
 
     if verbose {
-        println!("\nDone in {:<32}", display_elapsed_time(t0),);
+        println!("\nDone in {:<32}", display_elapsed_time(t0.elapsed()),);
     }
 
     let hash = hasher
