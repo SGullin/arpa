@@ -1,10 +1,16 @@
-use log::{debug, info};
-
 use crate::conveniences::display_elapsed_time;
 
-#[derive(Debug)]
+#[derive(Debug, Default)]
 /// Represents the current status of the pipeline.
 pub enum Status {
+    /// The pipeline is not active. Don't expect to ever receive this status
+    /// in a callback or such, it is just here for completeness sake.
+    #[default]
+    Idle,
+
+    /// Some error ocurred in the process.
+    Error(String),
+
     /// The pipeline is just starting.
     Starting {
         /// Raw file path and id.
@@ -17,11 +23,11 @@ pub enum Status {
         template: i32,
     },
 
-    /// An ephemeride was provided, and so it is being installed.
-    InstallingEphemeride,
-
     /// Copying a file from `.0` to `.1`.
     Copying(String, String),
+
+    /// An ephemeride was provided, and so it is being installed.
+    InstallingEphemeride,
 
     /// Manipulating the file using `psrchive::pam`.
     Manipulating,
@@ -55,19 +61,22 @@ pub enum Status {
         passed: bool 
     },
     
-    /// Archived the plots from `psrchive::pat` (with count provided).
-    ArchivedTOAPlots(usize),
+    /// Archived the plots from `psrchive::pat` (with count and whether it 
+    /// passed provided).
+    ArchivedTOAPlots(Option<usize>),
 
     /// The pipeline just finished (with total duration provided).
     Finished(std::time::Duration),
 }
 
-impl Status {
-    /// Logs itself via `log::info` or `log::debug`, depending on perceived 
-    /// importance.
-    pub fn log(self) {
+impl std::fmt::Display for Status {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
-            Self::Starting { raw, pulsar, ephemeride, template } => info!(
+            Self::Idle => write!(f, "Idling..."),
+            Self::Error(err) => write!(f, "Encountered error: {err}"),
+
+            Self::Starting { raw, pulsar, ephemeride, template } => write!(
+                f, 
                 "Cooking with the following:\
                 \n * Raw file:   {}\
                 \n               id = {}\
@@ -79,36 +88,41 @@ impl Status {
                 pulsar.0, pulsar.1,
                 ephemeride.as_ref().map_or_else(
                     || "(None)\n".into(), 
-                    |e| format!("{}\\n               id = {}", e.0, e.1),
+                    |e| format!("{}\n               id = {}", e.0, e.1),
                 ),
                 template,
             ),
 
-            Self::InstallingEphemeride => info!("Installing ephemeride..."),
-            Self::Copying(src, dst) => debug!("Copying from {src} to {dst}"),
-            Self::Manipulating => info!("Manipulating..."),
-            Self::VerifyingTemplate => info!("Verifying template..."),
-            Self::GeneratingTOAs => info!("Generating TOAs..."),
-            Self::GotTOAs(n) => info!("Got {n} TOA(s)!"),
-            Self::LoggingProcess => info!("Logging process..."),
-            Self::ParsingTOAs => info!("Parsing TOAs..."),
-            Self::ArchivedTOAs(n) => info!("Archived {n} TOA(s)!"),
-            Self::Diagnosing(n) => info!("Running {n} diagnostic(s)..."),
+            Self::InstallingEphemeride => 
+                write!(f, "Installing ephemeride..."),
+            Self::Copying(src, dst) => 
+                write!(f, "Copying from {src} to {dst}"),
+            Self::Manipulating => write!(f, "Manipulating..."),
+            Self::VerifyingTemplate => write!(f, "Verifying template..."),
+            Self::GeneratingTOAs => write!(f, "Generating TOAs..."),
+            Self::GotTOAs(n) => write!(f, "Got {n} TOA(s)!"),
+            Self::LoggingProcess => write!(f, "Logging process..."),
+            Self::ParsingTOAs => write!(f, "Parsing TOAs..."),
+            Self::ArchivedTOAs(n) => write!(f, "Archived {n} TOA(s)!"),
+            Self::Diagnosing(n) => write!(f, "Running {n} diagnostic(s)..."),
             
-            Self::FinishedDiagnostic { diagnostic, passed } => info!(
+            Self::FinishedDiagnostic { diagnostic, passed } => write!(
+                f,
                 "Finished diagnostic {diagnostic}{}",
-                if passed { " with no problems." }
+                if *passed { " with no problems." }
                 else { ", but an error ocurred." },
             ),
 
-            Self::ArchivedTOAPlots(n) => 
-                info!("Archived {n} plot(s) from psrchive::pat."),
+            Self::ArchivedTOAPlots(Some(n)) => 
+                write!(f, "Archived {n} plot(s) from psrchive::pat."),
+            Self::ArchivedTOAPlots(None) => 
+                write!(f, "Failed to archive plot(s) from psrchive::pat."),
 
-            Self::Finished(dt) => info!(
+            Self::Finished(dt) => write!(
+                f,
                 "Finished in {}!", 
-                display_elapsed_time(dt)
+                display_elapsed_time(*dt)
             ),
         }
     }
 }
-

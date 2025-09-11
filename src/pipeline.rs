@@ -10,17 +10,39 @@ use std::{process::Command, time::Instant};
 
 use log::{debug, error, warn};
 use psrutils::{error::PsruError, timfile::TOAInfo as TOA};
-use crate::{config::Config, conveniences::{assert_exists, compute_checksum, parse}, data_types::{DiagnosticPlot, ParMeta, ProcessInfo, PulsarMeta, RawFileHeader, RawMeta, TOAInfo, TemplateMeta}, diagnostics::run_diagnostic, external_tools::psrchive, ARPAError, Archivist};
+use crate::{
+    config::Config, 
+    conveniences::{assert_exists, compute_checksum, parse}, 
+    data_types::{
+        DiagnosticPlot, 
+        ParMeta, 
+        ProcessInfo, 
+        PulsarMeta, 
+        RawFileHeader, 
+        RawMeta, 
+        TOAInfo, 
+        TemplateMeta,
+    }, 
+    diagnostics::run_diagnostic, 
+    external_tools::psrchive, 
+    ARPAError, 
+    Archivist,
+};
 
 mod arguments;
 mod progress;
-pub use arguments::{parse_input_raw, parse_input_ephemeride, parse_input_template};
+pub use arguments::{
+    parse_input_raw, parse_input_ephemeride, parse_input_template
+};
 pub use progress::Status;
 
 /// Runs the toa-generation pipeline.
 /// 
 /// The `status_callback` is just for information on the progress of the 
-/// pipeline, the minimal (informing) case would be `|s: Status| s.log`.
+/// pipeline, the minimal (informing) case would be `|s: Status| info!("{s}")`.
+/// 
+/// Any errors encountered will be sent via the callback before propagating to
+/// the caller of this method.
 /// 
 /// # Notes
 /// While it is possible to create the different `meta`s without uploading them
@@ -45,7 +67,14 @@ pub async fn cook<F: Fn(Status)+Send+Sync>(
     status_callback: F,
 ) -> Result<(), ARPAError> {
     let start = Instant::now();
-    let pulsar_name = archivist.get::<PulsarMeta>(raw.pulsar_id).await?.alias;
+    let pulsar_name = archivist
+        .get::<PulsarMeta>(raw.pulsar_id)
+        .await
+        .map_err(|e| {
+            status_callback(Status::Error(e.to_string()));
+            e
+        })?
+        .alias;
 
     status_callback(Status::Starting {
         raw: (raw.file_path.clone(), raw.id),
@@ -66,7 +95,10 @@ pub async fn cook<F: Fn(Status)+Send+Sync>(
         ephemeride.as_ref(),
         &new_path,
         &status_callback,
-    )?;
+    ).map_err(|e| {
+        status_callback(Status::Error(e.to_string()));
+        e
+    })?;
 
     let toa_meta = generate_toas(
         archivist.config(),
@@ -74,9 +106,17 @@ pub async fn cook<F: Fn(Status)+Send+Sync>(
         &new_path,
         diagnostics,
         &status_callback,
-    )?;
+    ).map_err(|e| {
+        status_callback(Status::Error(e.to_string()));
+        e
+    })?;
 
-    archivist.start_transaction().await?;
+    archivist.start_transaction()
+    .await
+    .map_err(|e| {
+        status_callback(Status::Error(e.to_string()));
+        e
+    })?;
 
     let (process_id, toa_ids) = archive_toas(
         archivist, 
@@ -86,7 +126,11 @@ pub async fn cook<F: Fn(Status)+Send+Sync>(
         ephemeride.as_ref(),
         &template,
         &status_callback,
-    ).await?;
+    ).await
+    .map_err(|e| {
+        status_callback(Status::Error(e.to_string()));
+        e
+    })?;
 
     // > Create diagnostics & register plots ------------------------------
     if diagnostics {
@@ -97,9 +141,18 @@ pub async fn cook<F: Fn(Status)+Send+Sync>(
             toa_meta,
             toa_ids,
             &status_callback,
-        ).await?;
+        ).await
+        .map_err(|e| {
+            status_callback(Status::Error(e.to_string()));
+            e
+        })?;
     }
-    archivist.commit_transaction().await?;
+    archivist.commit_transaction()
+    .await
+    .map_err(|e| {
+        status_callback(Status::Error(e.to_string()));
+        e
+    })?;
 
     status_callback(Status::Finished(start.elapsed()));
     Ok(())
@@ -354,6 +407,7 @@ async fn do_diagnostics<F: Fn(Status)>(
 
     if assert_exists(toa_diag_path).is_err() {
         warn!("TOA diagnostic plot not found.");
+        status_callback(Status::ArchivedTOAPlots(None));
         return Ok(())
     }
 
@@ -380,7 +434,6 @@ async fn do_diagnostics<F: Fn(Status)>(
         archivist.insert(meta).await?;
     }
 
-    status_callback(Status::ArchivedTOAPlots(toa_ids.len()));
-
+    status_callback(Status::ArchivedTOAPlots(Some(toa_ids.len())));
     Ok(())
 }
