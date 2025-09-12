@@ -91,7 +91,7 @@ impl User {
     }
 
     /// The time this user was created (in the host's timekeeping system).
-    pub fn created_at(&self) -> time::OffsetDateTime {
+    pub const fn created_at(&self) -> time::OffsetDateTime {
         self.created_at
     }
 }

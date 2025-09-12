@@ -249,6 +249,8 @@ impl Archivist {
     /// this case is a string like `number = 2`, i.e. both the column and the
     /// actual value.
     ///
+    /// Remember that string values need to be incased in single quotes.
+    ///
     /// # Errors
     /// Forwards errors from `sqlx`.
     pub async fn update(
@@ -382,7 +384,8 @@ impl Archivist {
         Ok(self.current_transaction.as_mut().unwrap())
     }
 
-    pub(crate) const fn config(&self) -> &Config {
+    /// The current configuration.
+    pub const fn config(&self) -> &Config {
         &self.config
     }
 }

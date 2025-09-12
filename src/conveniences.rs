@@ -1,6 +1,7 @@
 //! A collection of convenience funtions. Might dissolve into separate modules
 //! in the future.
 
+use crate::{ARPAError, Result};
 use std::{
     any::type_name,
     fs::File,
@@ -8,13 +9,18 @@ use std::{
     os::unix::fs::MetadataExt,
     path::Path,
     str::FromStr,
-    time::Instant,
+    time::{Duration, Instant},
 };
 
 use log::{info, warn};
 use md5::Digest;
 
-use crate::{ARPAError, Result};
+/// The number of bytes to buffer when reading checksums.
+///
+/// FYI, changing this after deployment will break compatibility with any
+/// previous files. This is why it is kept as a constant instead of in the
+/// config.
+const BLOCK_SIZE: usize = 16 * 16 * 8192;
 
 /// Checks a path for a file.
 /// # Errors
@@ -54,9 +60,8 @@ pub fn progress_bar(message: &str, progress: f32, size: usize) {
 }
 
 /// Forms a string from the elapsed time, mainly to get easily readable times.
-pub fn display_elapsed_time(start: std::time::Instant) -> String {
-    let dur = start.elapsed();
-    let micros = dur.as_micros();
+pub fn display_elapsed_time(duration: Duration) -> String {
+    let micros = duration.as_micros();
 
     if micros < 1000 {
         return format!("{micros} μs");
@@ -130,7 +135,6 @@ where
 /// Possible io failure.
 pub fn compute_checksum(
     path: impl AsRef<Path>,
-    block_size: usize,
     verbose: bool,
 ) -> std::io::Result<u128> {
     let t0 = Instant::now();
@@ -142,10 +146,10 @@ pub fn compute_checksum(
     let mut hasher = md5::Md5::new();
 
     // To show progress
-    let len = (size as f32 / block_size as f32).max(1.0);
+    let len = (size as f32 / BLOCK_SIZE as f32).max(1.0);
     let mut read = 0.0;
 
-    let mut buffer = vec![0u8; block_size];
+    let mut buffer = vec![0u8; BLOCK_SIZE];
     while reader.read(&mut buffer)? > 0 {
         hasher.update(&buffer);
 
@@ -156,7 +160,7 @@ pub fn compute_checksum(
     }
 
     if verbose {
-        println!("\nDone in {:<32}", display_elapsed_time(t0),);
+        println!("\nDone in {:<32}", display_elapsed_time(t0.elapsed()),);
     }
 
     let hash = hasher
@@ -167,11 +171,7 @@ pub fn compute_checksum(
     Ok(hash)
 }
 
-pub(crate) fn check_file_equality(
-    source: &str,
-    path: String,
-    block_size: usize,
-) -> Result<u128> {
+pub(crate) fn check_file_equality(source: &str, path: String) -> Result<u128> {
     warn!("File already exists: '{path}'! Will not overwrite.");
     let src_size = File::open(source)?.metadata()?.size();
     let dst_size = File::open(&path)?.metadata()?.size();
@@ -183,9 +183,9 @@ pub(crate) fn check_file_equality(
 
     let sc = source.to_string();
     let src_checksum_handle =
-        std::thread::spawn(move || compute_checksum(sc, block_size, true));
+        std::thread::spawn(move || compute_checksum(sc, true));
     let dst_checksum_handle =
-        std::thread::spawn(move || compute_checksum(path, block_size, false));
+        std::thread::spawn(move || compute_checksum(path, false));
 
     let src_checksum = src_checksum_handle
         .join()

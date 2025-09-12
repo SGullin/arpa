@@ -1,6 +1,5 @@
 //! Diagnostic tools for the pipeline.
 
-use crate::config::Config;
 use crate::data_types::{DiagnosticFloat, DiagnosticPlot, archive_file};
 use crate::{ARPAError, Archivist, Result};
 
@@ -19,7 +18,6 @@ pub enum DiagnosticOut {
 /// # Errors
 /// Fails if the diagnositc tool fails, or the `archivist` can't do its thing.
 pub async fn run_diagnostic(
-    config: &Config,
     archivist: &mut Archivist,
     diagnostic: &str,
     process: i32,
@@ -27,8 +25,8 @@ pub async fn run_diagnostic(
     directory: &str,
 ) -> Result<()> {
     let out = match diagnostic {
-        "snr" => snr::run(config, file),
-        "composite" => composite::run(config, file),
+        "snr" => snr::run(archivist.config(), file),
+        "composite" => composite::run(archivist.config(), file),
 
         other => Err(ARPAError::UnknownDiagnostic(other.to_string())),
     }?;
@@ -36,7 +34,7 @@ pub async fn run_diagnostic(
     match out {
         DiagnosticOut::Plot(mut path) => {
             _ = archive_file(
-                config,
+                archivist.config(),
                 &mut path,
                 directory,
                 &format!("{diagnostic}.png"),

@@ -16,7 +16,7 @@ use std::os::unix::fs::MetadataExt;
 mod header;
 pub use header::RawFileHeader;
 
-#[derive(FromRow, Clone, TableItem)]
+#[derive(Debug, FromRow, Clone, TableItem)]
 #[table(RawMetas)]
 /// Metadata of a stored raw file.
 pub struct RawMeta {
@@ -45,10 +45,7 @@ impl RawMeta {
     ///  - the header can't be read;
     ///  - the observation system is missing;
     ///  - the `archivist` encounters an error.
-    pub async fn prepare_raw_meta(
-        archivist: &mut Archivist,
-        path: &str,
-    ) -> Result<Self> {
+    pub async fn parse(archivist: &mut Archivist, path: &str) -> Result<Self> {
         assert_exists(path)?;
 
         // Check that the file is ok
@@ -117,16 +114,12 @@ impl RawMeta {
             )?
         } else {
             info!("Currently set to not archive raw files...");
-            compute_checksum(
-                &file_path,
-                archivist.config().behaviour.checksum_block_size,
-                true,
-            )?
+            compute_checksum(&file_path, true)?
         };
 
         let checksum = uuid::Uuid::from_u128(checksum);
 
-        Ok(RawMeta {
+        Ok(Self {
             id: 0,
             file_path,
             checksum,
@@ -155,11 +148,10 @@ pub fn archive_file(
         warn!("File is already where it should be ({source}).");
         return Ok(0);
     }
-    let block_size = config.behaviour.checksum_block_size;
 
     std::fs::create_dir_all(directory)?;
     if std::fs::exists(&path)? {
-        return check_file_equality(source, path, block_size);
+        return check_file_equality(source, path);
     }
 
     // Both of these tasks can take some time, so they might as well run
@@ -170,7 +162,7 @@ pub fn archive_file(
     let copy_handle = std::thread::spawn(|| std::fs::copy(sc, dc));
     let sc = source.clone();
     let src_checksum_handle =
-        std::thread::spawn(move || compute_checksum(sc, block_size, true));
+        std::thread::spawn(move || compute_checksum(sc, true));
 
     // If it turns out the copy is faster than the src checksum, we can start
     // the dst checksum early. If not, we haven't lost anyhting here.
@@ -180,7 +172,7 @@ pub fn archive_file(
 
     let dc = path.clone();
     let dst_checksum_handle =
-        std::thread::spawn(move || compute_checksum(dc, block_size, false));
+        std::thread::spawn(move || compute_checksum(dc, false));
 
     let src_size = File::open(&source)?.metadata()?.size();
 
@@ -192,12 +184,13 @@ pub fn archive_file(
         .map_err(|err| ARPAError::JoinThread(format!("{err:?}")))??;
 
     if src_checksum != dst_checksum || src_size != dst_size {
-        return Err(ARPAError::FileCopy(
-            src_checksum,
-            dst_checksum,
-            src_size,
-            dst_size,
-        ));
+        // return Err(ARPAError::FileCopy(
+        //     src_checksum,
+        //     dst_checksum,
+        //     src_size,
+        //     dst_size,
+        // ));
+        return Err(ARPAError::ChecksumFail(path));
     }
 
     if config.behaviour.move_rawfiles {

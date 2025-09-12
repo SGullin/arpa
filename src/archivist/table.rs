@@ -17,25 +17,31 @@ pub enum Table {
     DiagnosticFloats,
     DiagnosticPlots,
 }
+impl Table {
+    /// A static `&str` for the name of the table.
+    pub const fn name(self) -> &'static str {
+        match self {
+            Self::Users => "users",
+
+            Self::PulsarMetas => "pulsar_meta",
+            Self::ParMetas => "par_meta",
+            Self::RawMetas => "raw_meta",
+            Self::TemplateMetas => "template_meta",
+
+            Self::Toas => "toas",
+
+            Self::Telescopes => "telescopes",
+            Self::ObsSystems => "obs_systems",
+
+            Self::ProcessMetas => "process_meta",
+            Self::DiagnosticFloats => "diag_floats",
+            Self::DiagnosticPlots => "diag_plots",
+        }
+    }
+}
 impl std::fmt::Display for Table {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        match self {
-            Self::Users => write!(f, "users"),
-
-            Self::PulsarMetas => write!(f, "pulsar_meta"),
-            Self::ParMetas => write!(f, "par_meta"),
-            Self::RawMetas => write!(f, "raw_meta"),
-            Self::TemplateMetas => write!(f, "template_meta"),
-
-            Self::Toas => write!(f, "toas"),
-
-            Self::Telescopes => write!(f, "telescopes"),
-            Self::ObsSystems => write!(f, "obs_systems"),
-
-            Self::ProcessMetas => write!(f, "process_meta"),
-            Self::DiagnosticFloats => write!(f, "diag_floats"),
-            Self::DiagnosticPlots => write!(f, "diag_plots"),
-        }
+        write!(f, "{}", self.name())
     }
 }
 

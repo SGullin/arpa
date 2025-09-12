@@ -3,7 +3,7 @@
 use crate::archivist::table::TableItem;
 use item_macro::TableItem;
 
-#[derive(sqlx::FromRow, TableItem)]
+#[derive(Debug, sqlx::FromRow, TableItem)]
 #[table(Toas)]
 /// TOA information. This comes from `psrchive`.
 pub struct TOAInfo {
@@ -11,17 +11,26 @@ pub struct TOAInfo {
     id: i32,
 
     // Toaster has these ----------------
-    process_id: i32,
-    template_id: i32,
-    rawfile_id: i32,
+    /// The ID of the process that generated this info.
+    pub process_id: i32,
+    /// The ID of the template used.
+    pub template_id: i32,
+    /// The ID of the raw file used.
+    pub rawfile_id: i32,
 
     // The data -------------------------
-    pulsar_id: i32,
-    observer_id: i32,
-    toa_int: i32,
-    toa_frac: f64,
-    toa_err: f32,
-    frequency: f32,
+    /// The ID of the pulsar this belongs to.
+    pub pulsar_id: i32,
+    /// The ID of the observer that made the raw data.
+    pub observer_id: i32,
+    /// The integer part of the arrival time.
+    pub toa_int: i32,
+    /// The fractional part of the arrival time.
+    pub toa_frac: f64,
+    /// The error in the arrival time.
+    pub toa_err: f32,
+    /// The frequency of this observation.
+    pub frequency: f32,
 }
 
 impl TOAInfo {

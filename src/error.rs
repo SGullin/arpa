@@ -1,6 +1,6 @@
 use std::{process::Output, string::FromUtf8Error};
 
-use crate::{archivist::ArchivistError, conveniences::comma_separate};
+use crate::archivist::ArchivistError;
 
 #[derive(Debug)]
 #[allow(missing_docs)]
@@ -17,17 +17,19 @@ pub enum ARPAError {
 
     MalformedInput(String),
     ParseFailed(String, &'static str),
-    FileCopy(u128, u128, u64, u64),
+    ChecksumFail(String),
 
     CantFind(String),
 
     ChefNoEphemeride,
     ChefNoTemplate,
     ChefNoRaw,
+    MissingEphemeride(i32),
     VapKeyCount(usize, usize),
 
     UnknownDiagnostic(String),
     DiagnosticPlotBadFile(String),
+    TOAExpectedFormat(String),
 }
 
 impl std::fmt::Display for ARPAError {
@@ -70,15 +72,9 @@ impl std::fmt::Display for ARPAError {
             Self::ParseFailed(data, type_) => {
                 write!(f, "Failed to parse \"{data}\" as {type_}",)
             }
-            Self::FileCopy(src_cs, dst_cs, src_sz, dst_sz) => write!(
-                f,
-                "Copying file failed! \n\tchecksum: {} -> {}\n\tsize: {} -> \
-                {}",
-                src_cs,
-                dst_cs,
-                comma_separate(src_sz),
-                comma_separate(dst_sz),
-            ),
+            Self::ChecksumFail(file) => {
+                write!(f, "Checksum falied for file \"{file}\".",)
+            }
 
             Self::CantFind(thing) => write!(f, "Could not find {thing}.",),
 
@@ -91,6 +87,11 @@ impl std::fmt::Display for ARPAError {
             Self::ChefNoTemplate => {
                 write!(f, "Cannot build chef without template.")
             }
+            Self::MissingEphemeride(id) => write!(
+                f,
+                "Pulsar with id {id} has no master parfile set, but it was \
+                required by the pipeline."
+            ),
             Self::VapKeyCount(keys, values) => write!(
                 f,
                 "Psrchive::vap was asked for {keys} values but returned \
@@ -103,6 +104,10 @@ impl std::fmt::Display for ARPAError {
             Self::DiagnosticPlotBadFile(file) => {
                 write!(f, "Can't figure out what you want to plot from {file}.",)
             }
+            Self::TOAExpectedFormat(line) => write!(
+                f,
+                "Expected \"FORMAT 1\" from psrchive::pat, but got \"{line}\".",
+            ),
         }
     }
 }

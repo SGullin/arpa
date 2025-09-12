@@ -2,6 +2,7 @@ use log::info;
 
 use super::DiagnosticOut;
 use crate::config::Config;
+use crate::conveniences::assert_exists;
 use crate::data_types::RawFileHeader;
 use crate::external_tools::psrchive;
 use crate::{ARPAError, Result};
@@ -13,16 +14,17 @@ use crate::{ARPAError, Result};
 pub fn run(config: &Config, file: &str) -> Result<DiagnosticOut> {
     info!("Creating composite plots for {file}...");
 
+    let fname = file.rfind('/').map_or(file, |i| &file[i + 1..]);
     let tmp = format!("{}/tmp.png", config.paths.temp_dir);
     let tmpcmd = format!("{tmp}/PNG");
     let header = RawFileHeader::get(config, file)?;
     let info = format!(
-        "above:l={}\n\
+        "above:l='{}\n\
         {}    {} ({})\n\
         Length={:.1} s    BW={:.1} MHz\n\
-        N\\dbin\\u=$nbin    N\\dchan\\u=$nchan    N\\dsub\\u=$nsubint, \
+        N\\dbin\\u=$nbin    N\\dchan\\u=$nchan    N\\dsub\\u=$nsubint',\
         above:off=3.5",
-        file,
+        fname,
         header.telescope,
         header.receiver,
         header.backend,
@@ -39,6 +41,8 @@ pub fn run(config: &Config, file: &str) -> Result<DiagnosticOut> {
         (false, true) => plot_no_time(config, file, &tmpcmd, &info)?,
         (false, false) => plot_prof_only(config, file, &tmpcmd, &info)?,
     }
+
+    assert_exists(&tmp)?;
 
     Ok(DiagnosticOut::Plot(tmp))
 }
@@ -170,7 +174,8 @@ fn plot_no_time(
         pol=I,\
         cmap:map=plasma",
     ];
-    _ = psrchive(config, "psrplot", &args)?;
+    let res = psrchive(config, "psrplot", &args)?;
+    info!("psrplot responded with '{res}'");
 
     Ok(())
 }

@@ -1,19 +1,25 @@
 //! Functions to call external tools.
 
-use std::process::Command;
+use std::{ffi::OsStr, process::Command};
 
-use crate::{ARPAError, Result, config::Config};
+use crate::{Result, config::Config};
 use log::{debug, info, warn};
 
 /// Runs a psrchive tool `tool`, and returns its result.
 /// # Errors
 /// Fails if the tool cannot be called, if the tool fails, or if the tool's
 /// output is not UTF-8.
-pub fn psrchive(config: &Config, tool: &str, args: &[&str]) -> Result<String> {
+pub fn psrchive(
+    config: &Config,
+    tool: &str,
+    args: &[impl AsRef<OsStr>],
+) -> Result<String> {
     debug!(
         "Running psrchive::{}, with the following arguments: [{}\n]",
         tool,
-        args.iter().fold(String::new(), |acc, a| acc + "\n\t" + a),
+        args.iter().fold(String::new(), |acc, a| acc
+            + "\n\t"
+            + &a.as_ref().to_string_lossy()),
     );
 
     let tool_path = if config.paths.psrchive.is_empty() {
@@ -22,22 +28,35 @@ pub fn psrchive(config: &Config, tool: &str, args: &[&str]) -> Result<String> {
         format!("{}/{}", config.paths.psrchive, tool)
     };
 
-    let output = Command::new(tool_path).args(args).output()?;
+    let t0 = std::time::Instant::now();
+    // let output = Command::new(tool_path).args(args).output()?;
+    let output = Command::new("/bin/sh")
+        .arg("-c")
+        .arg(args.iter().fold(tool_path, |acc, a| {
+            acc + " " + &a.as_ref().to_string_lossy()
+        }))
+        .output()?;
+    debug!(
+        "psrchive::{tool} finished in {} ms",
+        t0.elapsed().as_millis()
+    );
 
-    if !output.status.success() {
-        return Err(ARPAError::ToolFailure(String::from(tool), output));
-    }
+    // if !output.status. {
+    //     return Err(ARPAError::ToolFailure(
+
+    //     );
+    // }
 
     if !output.stderr.is_empty() {
         warn!(
-            "Tool did not report a failure, but still printed the following\
-            to stderr: \n{}",
+            "Tool printed the following to stderr: \n{}",
             String::from_utf8_lossy(&output.stderr)
         );
     }
 
     debug!(
-        "-- stdout:\n{}\n-- stderr:\n{}",
+        "status: {} \n-- stdout:\n{}\n-- stderr:\n{}",
+        output.status,
         String::from_utf8_lossy(&output.stdout),
         String::from_utf8_lossy(&output.stderr),
     );
