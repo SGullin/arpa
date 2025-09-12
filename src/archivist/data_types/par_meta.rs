@@ -25,10 +25,7 @@ impl ParMeta {
     /// Creates a new ephemeride meta object.
     /// # Errors
     /// Will only pass on errors from the io calls made.
-    pub fn new(
-        file_path: String,
-        pulsar_id: i32,
-    ) -> std::io::Result<Self> {
+    pub fn new(file_path: String, pulsar_id: i32) -> std::io::Result<Self> {
         let u128 = compute_checksum(&file_path, true)?;
         let checksum = uuid::Uuid::from_u128(u128);
 

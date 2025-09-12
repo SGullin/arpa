@@ -9,14 +9,17 @@ use log::{debug, info, warn};
 /// # Errors
 /// Fails if the tool cannot be called, if the tool fails, or if the tool's
 /// output is not UTF-8.
-pub fn psrchive(config: &Config, tool: &str, args: &[impl AsRef<OsStr>]) -> Result<String> {
+pub fn psrchive(
+    config: &Config,
+    tool: &str,
+    args: &[impl AsRef<OsStr>],
+) -> Result<String> {
     debug!(
         "Running psrchive::{}, with the following arguments: [{}\n]",
         tool,
-        args.iter().fold(
-            String::new(), 
-            |acc, a|  acc + "\n\t" + &a.as_ref().to_string_lossy()
-        ),
+        args.iter().fold(String::new(), |acc, a| acc
+            + "\n\t"
+            + &a.as_ref().to_string_lossy()),
     );
 
     let tool_path = if config.paths.psrchive.is_empty() {
@@ -29,12 +32,14 @@ pub fn psrchive(config: &Config, tool: &str, args: &[impl AsRef<OsStr>]) -> Resu
     // let output = Command::new(tool_path).args(args).output()?;
     let output = Command::new("/bin/sh")
         .arg("-c")
-        .arg(args.iter().fold(
-            tool_path, 
-            |acc, a|  acc + " " + &a.as_ref().to_string_lossy()
-        ))
+        .arg(args.iter().fold(tool_path, |acc, a| {
+            acc + " " + &a.as_ref().to_string_lossy()
+        }))
         .output()?;
-    debug!("psrchive::{tool} finished in {} ms", t0.elapsed().as_millis());
+    debug!(
+        "psrchive::{tool} finished in {} ms",
+        t0.elapsed().as_millis()
+    );
 
     // if !output.status. {
     //     return Err(ARPAError::ToolFailure(

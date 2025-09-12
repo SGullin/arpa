@@ -1,6 +1,6 @@
 use std::{process::Output, string::FromUtf8Error};
 
-use crate::{archivist::ArchivistError};
+use crate::archivist::ArchivistError;
 
 #[derive(Debug)]
 #[allow(missing_docs)]
@@ -72,9 +72,9 @@ impl std::fmt::Display for ARPAError {
             Self::ParseFailed(data, type_) => {
                 write!(f, "Failed to parse \"{data}\" as {type_}",)
             }
-            Self::ChecksumFail(file) => write!(f,
-                "Checksum falied for file \"{file}\".",
-            ),
+            Self::ChecksumFail(file) => {
+                write!(f, "Checksum falied for file \"{file}\".",)
+            }
 
             Self::CantFind(thing) => write!(f, "Could not find {thing}.",),
 
@@ -87,7 +87,8 @@ impl std::fmt::Display for ARPAError {
             Self::ChefNoTemplate => {
                 write!(f, "Cannot build chef without template.")
             }
-            Self::MissingEphemeride(id) => write!(f, 
+            Self::MissingEphemeride(id) => write!(
+                f,
                 "Pulsar with id {id} has no master parfile set, but it was \
                 required by the pipeline."
             ),
@@ -103,8 +104,9 @@ impl std::fmt::Display for ARPAError {
             Self::DiagnosticPlotBadFile(file) => {
                 write!(f, "Can't figure out what you want to plot from {file}.",)
             }
-            Self::TOAExpectedFormat(line) => write!(f,
-                "Expected \"FORMAT 1\" from psrchive::pat, but got \"{line}\".",   
+            Self::TOAExpectedFormat(line) => write!(
+                f,
+                "Expected \"FORMAT 1\" from psrchive::pat, but got \"{line}\".",
             ),
         }
     }

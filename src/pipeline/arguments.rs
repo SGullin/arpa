@@ -1,19 +1,19 @@
 use log::{debug, info, warn};
 
 use crate::{
-    conveniences::assert_exists, 
-    data_types::{ParMeta, RawMeta, TemplateMeta}, 
-    ARPAError, Archivist
+    ARPAError, Archivist,
+    conveniences::assert_exists,
+    data_types::{ParMeta, RawMeta, TemplateMeta},
 };
 
 /// Parses `text` to load a `RawMeta`. This will try two things:
 ///  1) parsing as an `i32`: if successful, it will look for an existing entry
 ///     with that id; or
-///  2) treating as a path: if a file is found, it will try to upload it and 
+///  2) treating as a path: if a file is found, it will try to upload it and
 ///     then use it.
-/// 
-/// # Errors 
-/// Any error will come from either the `archivist` failing or a file not being 
+///
+/// # Errors
+/// Any error will come from either the `archivist` failing or a file not being
 /// ok.
 pub async fn parse_input_raw(
     archivist: &mut Archivist,
@@ -27,7 +27,7 @@ pub async fn parse_input_raw(
 
 async fn raw_from_file(
     archivist: &mut Archivist,
-    path: &str
+    path: &str,
 ) -> Result<RawMeta, ARPAError> {
     debug!("Picking raw file by path");
 
@@ -43,11 +43,11 @@ async fn raw_from_file(
 /// Parses `text` to load a `ParMeta`. This will try two things:
 ///  1) parsing as an `i32`: if successful, it will look for an existing entry
 ///     with that id; or
-///  2) treating as a path: if a file is found, it will try to upload it and 
+///  2) treating as a path: if a file is found, it will try to upload it and
 ///     then use it.
-/// 
-/// # Errors 
-/// Any error will come from either the `archivist` failing or a file not being 
+///
+/// # Errors
+/// Any error will come from either the `archivist` failing or a file not being
 /// ok.
 pub async fn parse_input_ephemeride(
     archivist: &mut Archivist,
@@ -61,7 +61,7 @@ pub async fn parse_input_ephemeride(
 }
 
 async fn ephermeride_from_file(
-    archivist: &mut Archivist, 
+    archivist: &mut Archivist,
     raw: &RawMeta,
     path: &str,
 ) -> Result<ParMeta, ARPAError> {
@@ -79,9 +79,9 @@ async fn ephermeride_from_file(
     }
 
     // Otherwise, we check for pre-existing file
-    let existing = archivist.find::<ParMeta>(
-        &format!("checksum='{}'", meta.checksum)
-    ).await?;
+    let existing = archivist
+        .find::<ParMeta>(&format!("checksum='{}'", meta.checksum))
+        .await?;
 
     if let Some(pm) = existing {
         warn!(
@@ -89,8 +89,7 @@ async fn ephermeride_from_file(
             pm.checksum,
         );
         Ok(pm)
-    }
-    else {
+    } else {
         meta.id = archivist.insert(meta.clone()).await?;
         Ok(meta)
     }
@@ -99,11 +98,11 @@ async fn ephermeride_from_file(
 /// Parses `text` to load a `TemplateMeta`. This will try two things:
 ///  1) parsing as an `i32`: if successful, it will look for an existing entry
 ///     with that id; or
-///  2) treating as a path: if a file is found, it will try to upload it and 
+///  2) treating as a path: if a file is found, it will try to upload it and
 ///     then use it.
-/// 
-/// # Errors 
-/// Any error will come from either the `archivist` failing or a file not being 
+///
+/// # Errors
+/// Any error will come from either the `archivist` failing or a file not being
 /// ok.
 pub async fn parse_input_template(
     archivist: &mut Archivist,
@@ -117,9 +116,9 @@ pub async fn parse_input_template(
 }
 
 async fn template_from_file(
-    archivist: &mut Archivist, 
+    archivist: &mut Archivist,
     raw: &RawMeta,
-    path: &str
+    path: &str,
 ) -> Result<TemplateMeta, ARPAError> {
     debug!("Picking template by path");
     assert_exists(path)?;
@@ -135,9 +134,9 @@ async fn template_from_file(
     }
 
     // Otherwise, we check for pre-existing file
-    let existing = archivist.find::<TemplateMeta>(
-        &format!("checksum='{}'", meta.checksum)
-    ).await?;
+    let existing = archivist
+        .find::<TemplateMeta>(&format!("checksum='{}'", meta.checksum))
+        .await?;
 
     if let Some(tm) = existing {
         warn!(
@@ -145,8 +144,7 @@ async fn template_from_file(
             tm.checksum,
         );
         Ok(tm)
-    }
-    else {
+    } else {
         meta.id = archivist.insert(meta.clone()).await?;
         Ok(meta)
     }

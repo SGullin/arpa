@@ -1,16 +1,16 @@
 //! A collection of convenience funtions. Might dissolve into separate modules
 //! in the future.
 
+use crate::{ARPAError, Result};
 use std::{
     any::type_name,
     fs::File,
-    io::{stdout, BufReader, Read, Write},
+    io::{BufReader, Read, Write, stdout},
     os::unix::fs::MetadataExt,
     path::Path,
     str::FromStr,
     time::{Duration, Instant},
 };
-use crate::{ARPAError, Result};
 
 use log::{info, warn};
 use md5::Digest;
@@ -18,9 +18,9 @@ use md5::Digest;
 /// The number of bytes to buffer when reading checksums.
 ///
 /// FYI, changing this after deployment will break compatibility with any
-/// previous files. This is why it is kept as a constant instead of in the 
+/// previous files. This is why it is kept as a constant instead of in the
 /// config.
-const BLOCK_SIZE: usize = 16*16*8192;
+const BLOCK_SIZE: usize = 16 * 16 * 8192;
 
 /// Checks a path for a file.
 /// # Errors
@@ -171,10 +171,7 @@ pub fn compute_checksum(
     Ok(hash)
 }
 
-pub(crate) fn check_file_equality(
-    source: &str,
-    path: String,
-) -> Result<u128> {
+pub(crate) fn check_file_equality(source: &str, path: String) -> Result<u128> {
     warn!("File already exists: '{path}'! Will not overwrite.");
     let src_size = File::open(source)?.metadata()?.size();
     let dst_size = File::open(&path)?.metadata()?.size();

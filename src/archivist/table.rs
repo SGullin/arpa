@@ -21,27 +21,27 @@ impl Table {
     /// A static `&str` for the name of the table.
     pub const fn name(self) -> &'static str {
         match self {
-            Table::Users => "users",
+            Self::Users => "users",
 
-            Table::PulsarMetas => "pulsar_meta",
-            Table::ParMetas => "par_meta",
-            Table::RawMetas => "raw_meta",
-            Table::TemplateMetas => "template_meta",
+            Self::PulsarMetas => "pulsar_meta",
+            Self::ParMetas => "par_meta",
+            Self::RawMetas => "raw_meta",
+            Self::TemplateMetas => "template_meta",
 
-            Table::Toas => "toas",
+            Self::Toas => "toas",
 
-            Table::Telescopes => "telescopes",
-            Table::ObsSystems => "obs_systems",
+            Self::Telescopes => "telescopes",
+            Self::ObsSystems => "obs_systems",
 
-            Table::ProcessMetas => "process_meta",
-            Table::DiagnosticFloats => "diag_floats",
-            Table::DiagnosticPlots => "diag_plots",
+            Self::ProcessMetas => "process_meta",
+            Self::DiagnosticFloats => "diag_floats",
+            Self::DiagnosticPlots => "diag_plots",
         }
     }
 }
 impl std::fmt::Display for Table {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{}",  self.name())
+        write!(f, "{}", self.name())
     }
 }
 

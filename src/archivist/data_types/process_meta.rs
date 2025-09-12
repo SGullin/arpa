@@ -29,23 +29,23 @@ pub struct ProcessInfo {
 }
 impl ProcessInfo {
     pub(crate) fn new(
-        user_id: i32, 
-        raw: &super::RawMeta, 
-        ephemeride: Option<&ParMeta>, 
-        template: &super::TemplateMeta, 
-        n_channels: i16, 
-        n_subints: i16, 
-        method: &str
+        user_id: i32,
+        raw: &super::RawMeta,
+        ephemeride: Option<&ParMeta>,
+        template: &super::TemplateMeta,
+        n_channels: i16,
+        n_subints: i16,
+        method: &str,
     ) -> Self {
-        Self { 
-            id: 0, 
+        Self {
+            id: 0,
             raw_id: raw.id,
-            par_id: ephemeride.map(|e| e.id), 
-            template_id: template.id, 
+            par_id: ephemeride.map(|e| e.id),
+            template_id: template.id,
             n_channels,
-            n_subints, 
-            method: method.to_string(), 
-            user_id
+            n_subints,
+            method: method.to_string(),
+            user_id,
         }
     }
 }

@@ -45,10 +45,7 @@ impl RawMeta {
     ///  - the header can't be read;
     ///  - the observation system is missing;
     ///  - the `archivist` encounters an error.
-    pub async fn parse(
-        archivist: &mut Archivist,
-        path: &str,
-    ) -> Result<Self> {
+    pub async fn parse(archivist: &mut Archivist, path: &str) -> Result<Self> {
         assert_exists(path)?;
 
         // Check that the file is ok
@@ -117,10 +114,7 @@ impl RawMeta {
             )?
         } else {
             info!("Currently set to not archive raw files...");
-            compute_checksum(
-                &file_path,
-                true,
-            )?
+            compute_checksum(&file_path, true)?
         };
 
         let checksum = uuid::Uuid::from_u128(checksum);
