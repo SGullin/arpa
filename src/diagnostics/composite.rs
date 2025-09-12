@@ -2,6 +2,7 @@ use log::info;
 
 use super::DiagnosticOut;
 use crate::config::Config;
+use crate::conveniences::assert_exists;
 use crate::data_types::RawFileHeader;
 use crate::external_tools::psrchive;
 use crate::{ARPAError, Result};
@@ -40,6 +41,8 @@ pub fn run(config: &Config, file: &str) -> Result<DiagnosticOut> {
         (false, true) => plot_no_time(config, file, &tmpcmd, &info)?,
         (false, false) => plot_prof_only(config, file, &tmpcmd, &info)?,
     }
+
+    assert_exists(&tmp)?;
 
     Ok(DiagnosticOut::Plot(tmp))
 }
@@ -171,7 +174,8 @@ fn plot_no_time(
         pol=I,\
         cmap:map=plasma",
     ];
-    _ = psrchive(config, "psrplot", &args)?;
+    let res = psrchive(config, "psrplot", &args)?;
+    info!("psrplot responded with '{res}'");
 
     Ok(())
 }

@@ -25,6 +25,7 @@ pub fn psrchive(config: &Config, tool: &str, args: &[impl AsRef<OsStr>]) -> Resu
         format!("{}/{}", config.paths.psrchive, tool)
     };
 
+    let t0 = std::time::Instant::now();
     // let output = Command::new(tool_path).args(args).output()?;
     let output = Command::new("/bin/sh")
         .arg("-c")
@@ -33,6 +34,7 @@ pub fn psrchive(config: &Config, tool: &str, args: &[impl AsRef<OsStr>]) -> Resu
             |acc, a|  acc + " " + &a.as_ref().to_string_lossy()
         ))
         .output()?;
+    debug!("psrchive::{tool} finished in {} ms", t0.elapsed().as_millis());
 
     // if !output.status. {
     //     return Err(ARPAError::ToolFailure(
@@ -48,7 +50,8 @@ pub fn psrchive(config: &Config, tool: &str, args: &[impl AsRef<OsStr>]) -> Resu
     }
 
     debug!(
-        "-- stdout:\n{}\n-- stderr:\n{}",
+        "status: {} \n-- stdout:\n{}\n-- stderr:\n{}",
+        output.status,
         String::from_utf8_lossy(&output.stdout),
         String::from_utf8_lossy(&output.stderr),
     );

@@ -70,10 +70,7 @@ pub async fn cook<F: Fn(Status)+Send+Sync>(
     let pulsar_name = archivist
         .get::<PulsarMeta>(raw.pulsar_id)
         .await
-        .map_err(|e| {
-            status_callback(Status::Error(e.to_string()));
-            e
-        })?
+        .inspect_err(|e| status_callback(Status::Error(e.to_string())))?
         .alias;
 
     status_callback(Status::Starting {
@@ -95,10 +92,7 @@ pub async fn cook<F: Fn(Status)+Send+Sync>(
         ephemeride.as_ref(),
         &new_path,
         &status_callback,
-    ).map_err(|e| {
-        status_callback(Status::Error(e.to_string()));
-        e
-    })?;
+    ).inspect_err(|e| status_callback(Status::Error(e.to_string())))?;
 
     let toa_meta = generate_toas(
         archivist.config(),
@@ -106,17 +100,11 @@ pub async fn cook<F: Fn(Status)+Send+Sync>(
         &new_path,
         diagnostics,
         &status_callback,
-    ).map_err(|e| {
-        status_callback(Status::Error(e.to_string()));
-        e
-    })?;
+    ).inspect_err(|e| status_callback(Status::Error(e.to_string())))?;
 
     archivist.start_transaction()
     .await
-    .map_err(|e| {
-        status_callback(Status::Error(e.to_string()));
-        e
-    })?;
+    .inspect_err(|e| status_callback(Status::Error(e.to_string())))?;
 
     let (process_id, toa_ids) = archive_toas(
         archivist, 
@@ -127,10 +115,7 @@ pub async fn cook<F: Fn(Status)+Send+Sync>(
         &template,
         &status_callback,
     ).await
-    .map_err(|e| {
-        status_callback(Status::Error(e.to_string()));
-        e
-    })?;
+    .inspect_err(|e| status_callback(Status::Error(e.to_string())))?;
 
     // > Create diagnostics & register plots ------------------------------
     if diagnostics {
@@ -142,17 +127,11 @@ pub async fn cook<F: Fn(Status)+Send+Sync>(
             toa_ids,
             &status_callback,
         ).await
-        .map_err(|e| {
-            status_callback(Status::Error(e.to_string()));
-            e
-        })?;
+        .inspect_err(|e| status_callback(Status::Error(e.to_string())))?;
     }
     archivist.commit_transaction()
     .await
-    .map_err(|e| {
-        status_callback(Status::Error(e.to_string()));
-        e
-    })?;
+    .inspect_err(|e| status_callback(Status::Error(e.to_string())))?;
 
     status_callback(Status::Finished(start.elapsed()));
     Ok(())
