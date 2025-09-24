@@ -35,13 +35,6 @@ pub struct Database {
 #[derive(Deserialize)]
 /// Decsribing pipeline behaviour.
 pub struct Behaviour {
-    /// Whether to archive raw files in a location determined by their header
-    /// data.
-    pub archive_rawfiles: bool,
-
-    /// Whether to move raw files, instead of copying, when archiving.
-    pub move_rawfiles: bool,
-
     /// Whether to automatically add unregistered encountered pulsars.
     pub auto_add_pulsars: bool,
 
@@ -61,8 +54,6 @@ pub struct Behaviour {
 pub struct Paths {
     /// Path to psrchive executables.
     pub psrchive: String,
-    /// The path of the root of the raw files' storage directory.
-    pub rawfile_storage: String,
     /// The root directory for temporary files.
     pub temp_dir: String,
     /// The root dir for all diagnostics.

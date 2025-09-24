@@ -1,3 +1,5 @@
+use std::path::Path;
+
 use log::{debug, info, warn};
 
 use crate::{
@@ -6,38 +8,13 @@ use crate::{
     data_types::{ParMeta, RawMeta, TemplateMeta},
 };
 
-/// Parses `text` to load a `RawMeta`. This will try two things:
-///  1) parsing as an `i32`: if successful, it will look for an existing entry
-///     with that id; or
-///  2) treating as a path: if a file is found, it will try to upload it and
-///     then use it.
-///
-/// # Errors
-/// Any error will come from either the `archivist` failing or a file not being
-/// ok.
-pub async fn parse_input_raw(
+/// Parses the raw file to be used for the pipeline
+pub async fn read_raw_file(
     archivist: &mut Archivist,
-    text: &str,
+    path: &impl AsRef<Path>,
 ) -> Result<RawMeta, ARPAError> {
-    match text.parse() {
-        Ok(id) => archivist.get(id).await.map_err(Into::into),
-        Err(_) => raw_from_file(archivist, text).await,
-    }
-}
-
-async fn raw_from_file(
-    archivist: &mut Archivist,
-    path: &str,
-) -> Result<RawMeta, ARPAError> {
-    debug!("Picking raw file by path");
-
-    // Insert the file into the table
-    let mut raw = RawMeta::parse(archivist, path).await?;
-    info!("Inserting raw file {path}");
-
-    raw.id = archivist.insert(raw.clone()).await?;
-
-    Ok(raw)
+    debug!("Reading raw file...");
+    RawMeta::parse(archivist, path).await
 }
 
 /// Parses `text` to load a `ParMeta`. This will try two things:
@@ -66,11 +43,11 @@ async fn ephermeride_from_file(
     path: &str,
 ) -> Result<ParMeta, ARPAError> {
     debug!("Parsing ephemeride path");
-    assert_exists(path)?;
+    assert_exists(&path)?;
 
     // Insert the file into the table
-    let mut meta = ParMeta::new(path.to_string(), raw.pulsar_id)?;
     info!("Inserting ephemeride {path}");
+    let mut meta = ParMeta::new(path.to_string(), raw.pulsar_id)?;
 
     // If auto resolve dupes is off, we just insert
     if !archivist.config().behaviour.auto_resolve_duplicate_uploads {
@@ -121,7 +98,7 @@ async fn template_from_file(
     path: &str,
 ) -> Result<TemplateMeta, ARPAError> {
     debug!("Picking template by path");
-    assert_exists(path)?;
+    assert_exists(&path)?;
 
     // Insert the file into the table
     info!("Inserting new template {path}");

@@ -2,7 +2,7 @@
 
 use std::{ffi::OsStr, process::Command};
 
-use crate::{Result, config::Config};
+use crate::{config::Config, conveniences::display_elapsed_time, ARPAError, Result};
 use log::{debug, info, warn};
 
 /// Runs a psrchive tool `tool`, and returns its result.
@@ -37,14 +37,14 @@ pub fn psrchive(
         }))
         .output()?;
     debug!(
-        "psrchive::{tool} finished in {} ms",
-        t0.elapsed().as_millis()
+        "psrchive::{tool} finished in {}",
+        display_elapsed_time(t0.elapsed()),
     );
 
-    // if !output.status. {
+    // if !output.status.success() {
     //     return Err(ARPAError::ToolFailure(
-
-    //     );
+    //         tool.to_string(), output,
+    //     ));
     // }
 
     if !output.stderr.is_empty() {
@@ -52,6 +52,9 @@ pub fn psrchive(
             "Tool printed the following to stderr: \n{}",
             String::from_utf8_lossy(&output.stderr)
         );
+        return Err(ARPAError::ToolFailure(
+            tool.to_string(), output,
+        ));
     }
 
     debug!(

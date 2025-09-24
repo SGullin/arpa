@@ -1,3 +1,5 @@
+use std::path::Path;
+
 use log::info;
 
 use super::DiagnosticOut;
@@ -11,10 +13,17 @@ use crate::{ARPAError, Result};
 ///
 /// # Errors
 /// Fails if the fils is unreadable or the plotter fails.
-pub fn run(config: &Config, file: &str) -> Result<DiagnosticOut> {
-    info!("Creating composite plots for {file}...");
+pub fn run(config: &Config, file: &impl AsRef<Path>) -> Result<DiagnosticOut> {
+    info!("Creating composite plots for {}...", file.as_ref().display());
 
-    let fname = file.rfind('/').map_or(file, |i| &file[i + 1..]);
+    // let fname = file.rfind('/').map_or(file, |i| &file[i + 1..]);
+    let fname = file
+    .as_ref()
+    .file_name()
+    .map_or(
+        "unnamed".to_string(), 
+        |n| n.to_string_lossy().to_string(),
+    );
     let tmp = format!("{}/tmp.png", config.paths.temp_dir);
     let tmpcmd = format!("{tmp}/PNG");
     let header = RawFileHeader::get(config, file)?;
@@ -33,7 +42,9 @@ pub fn run(config: &Config, file: &str) -> Result<DiagnosticOut> {
     );
 
     if header.sub_count * header.channel_count == 0 {
-        return Err(ARPAError::DiagnosticPlotBadFile(file.to_string()));
+        return Err(ARPAError::DiagnosticPlotBadFile(
+            file.as_ref().display().to_string())
+        );
     }
     match (header.sub_count > 1, header.channel_count > 1) {
         (true, true) => plot_all(config, file, &tmpcmd, &info)?,
@@ -49,7 +60,7 @@ pub fn run(config: &Config, file: &str) -> Result<DiagnosticOut> {
 
 fn plot_all(
     config: &Config,
-    path: &str,
+    path: &impl AsRef<Path>,
     outcmd: &str,
     info: &str,
 ) -> Result<()> {
@@ -59,7 +70,7 @@ fn plot_all(
         "D",
         "-c",
         "above:c=,x:range=0:2",
-        path,
+        &path.as_ref().display().to_string(),
         "-D",
         outcmd,
         "-p",
@@ -98,7 +109,7 @@ fn plot_all(
 
 fn plot_no_freq(
     config: &Config,
-    path: &str,
+    path: &impl AsRef<Path>,
     outcmd: &str,
     info: &str,
 ) -> Result<()> {
@@ -108,7 +119,7 @@ fn plot_no_freq(
         "D",
         "-c",
         "above:c=,x:range=0:2",
-        path,
+        &path.as_ref().display().to_string(),
         "-D",
         outcmd,
         "-p",
@@ -139,7 +150,7 @@ fn plot_no_freq(
 
 fn plot_no_time(
     config: &Config,
-    path: &str,
+    path: &impl AsRef<Path>,
     outcmd: &str,
     info: &str,
 ) -> Result<()> {
@@ -149,7 +160,7 @@ fn plot_no_time(
         "D",
         "-c",
         "above:c=,x:range=0:2",
-        path,
+        &path.as_ref().display().to_string(),
         "-D",
         outcmd,
         "-p",
@@ -174,15 +185,14 @@ fn plot_no_time(
         pol=I,\
         cmap:map=plasma",
     ];
-    let res = psrchive(config, "psrplot", &args)?;
-    info!("psrplot responded with '{res}'");
+    _ = psrchive(config, "psrplot", &args)?;
 
     Ok(())
 }
 
 fn plot_prof_only(
     config: &Config,
-    path: &str,
+    path: &impl AsRef<Path>,
     outcmd: &str,
     info: &str,
 ) -> Result<()> {
@@ -192,7 +202,7 @@ fn plot_prof_only(
         "D",
         "-c",
         "above:c=,x:range=0:2",
-        path,
+        &path.as_ref().display().to_string(),
         "-D",
         outcmd,
         "-p",

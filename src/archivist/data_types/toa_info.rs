@@ -15,8 +15,6 @@ pub struct TOAInfo {
     pub process_id: i32,
     /// The ID of the template used.
     pub template_id: i32,
-    /// The ID of the raw file used.
-    pub rawfile_id: i32,
 
     // The data -------------------------
     /// The ID of the pulsar this belongs to.
@@ -42,7 +40,6 @@ impl TOAInfo {
         observer_id: i32,
         process_id: i32,
         template_id: i32,
-        rawfile_id: i32,
     ) -> Self {
         let toa_int = toa.mjd.int() as i32;
         let toa_frac = toa.mjd.frac();
@@ -51,7 +48,6 @@ impl TOAInfo {
             id: 0,
             process_id,
             template_id,
-            rawfile_id,
 
             pulsar_id,
             observer_id,

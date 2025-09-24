@@ -1,4 +1,4 @@
-use std::{process::Output, string::FromUtf8Error};
+use std::{path::PathBuf, process::Output, string::FromUtf8Error};
 
 use crate::archivist::ArchivistError;
 
@@ -11,7 +11,7 @@ pub enum ARPAError {
     ToolFailure(String, Output),
     JoinThread(String),
     ConfigFailure(toml::de::Error),
-    MissingFileOrDirectory(String),
+    MissingFileOrDirectory(PathBuf),
     StringConversion(Vec<u8>),
     ArchivistError(ArchivistError),
 
@@ -57,7 +57,7 @@ impl std::fmt::Display for ARPAError {
                 write!(f, "Encountered error reading config file: {err}",)
             }
             Self::MissingFileOrDirectory(path) => {
-                write!(f, "File or directory \"{path}\" is missing.",)
+                write!(f, "File or directory \"{}\" is missing.", path.display())
             }
             Self::StringConversion(bytes) => {
                 write!(f, "Failed to parse string from bytes: {bytes:?}",)

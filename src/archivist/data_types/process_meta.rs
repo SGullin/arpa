@@ -12,8 +12,8 @@ pub struct ProcessInfo {
     #[derived]
     id: i32,
 
-    /// ID of the raw file.
-    pub raw_id: i32,
+    // /// ID of the raw file.
+    // pub raw_id: i32,
     /// ID of the ephemeride.
     pub par_id: Option<i32>,
     /// ID of the template.
@@ -26,26 +26,30 @@ pub struct ProcessInfo {
     pub method: String,
     /// Which user launched the process.
     pub user_id: i32,
+    /// Time of launch.
+    pub started_at: sqlx::types::time::OffsetDateTime,
 }
 impl ProcessInfo {
     pub(crate) fn new(
         user_id: i32,
-        raw: &super::RawMeta,
+        // raw: &super::RawMeta,
         ephemeride: Option<&ParMeta>,
         template: &super::TemplateMeta,
         n_channels: i16,
         n_subints: i16,
         method: &str,
+        started_at: sqlx::types::time::OffsetDateTime
     ) -> Self {
         Self {
             id: 0,
-            raw_id: raw.id,
+            // raw_id: raw.id,
             par_id: ephemeride.map(|e| e.id),
             template_id: template.id,
             n_channels,
             n_subints,
             method: method.to_string(),
             user_id,
+            started_at,
         }
     }
 }

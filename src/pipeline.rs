@@ -6,7 +6,7 @@
 //! The `parse_input_` functions are helpers to parse text as either `id`s or
 //! paths and take the corresponding actions.
 
-use std::{process::Command, time::Instant};
+use std::{path::{Path, PathBuf}, process::Command};
 
 use crate::{
     ARPAError, Archivist,
@@ -25,7 +25,9 @@ use psrutils::{error::PsruError, timfile::TOAInfo as TOA};
 mod arguments;
 mod progress;
 pub use arguments::{
-    parse_input_ephemeride, parse_input_raw, parse_input_template,
+    parse_input_ephemeride, 
+    parse_input_template,
+    read_raw_file
 };
 pub use progress::Status;
 
@@ -59,7 +61,14 @@ pub async fn cook<F: Fn(Status) + Send + Sync>(
     diagnostics: bool,
     status_callback: F,
 ) -> Result<(), ARPAError> {
-    let start = Instant::now();
+    // Check some psrchive tools
+    assert!(
+        psrchive(archivist.config(), "pat", &["-h"]).is_ok(), 
+        "psrchive::pat could not be run..."
+    );
+
+    let start_time = sqlx::types::time::OffsetDateTime::now_utc();
+    
     let pulsar_name = archivist
         .get::<PulsarMeta>(raw.pulsar_id)
         .await
@@ -67,14 +76,18 @@ pub async fn cook<F: Fn(Status) + Send + Sync>(
         .alias;
 
     status_callback(Status::Starting {
-        raw: (raw.file_path.clone(), raw.id),
+        raw: raw.path.display().to_string(),
         pulsar: (pulsar_name, raw.pulsar_id),
         ephemeride: ephemeride.clone().map(|e| (e.file_path, e.id)),
         template: template.id,
     });
 
     let user_id = 0;
-    let new_path = format!("{}/working.ar", archivist.config().paths.temp_dir);
+    // let new_path = format!("{}/tmp.ar", archivist.config().paths.temp_dir);
+    let mut new_path = PathBuf::new();
+    new_path.push(&archivist.config().paths.temp_dir);
+    new_path.push("tmp");
+    new_path.set_extension("ar");
 
     manipulate(
         archivist.config(),
@@ -106,6 +119,7 @@ pub async fn cook<F: Fn(Status) + Send + Sync>(
         &raw,
         ephemeride.as_ref(),
         &template,
+        start_time,
         &status_callback,
     )
     .await
@@ -129,7 +143,9 @@ pub async fn cook<F: Fn(Status) + Send + Sync>(
         .await
         .inspect_err(|e| status_callback(Status::Error(e.to_string())))?;
 
-    status_callback(Status::Finished(start.elapsed()));
+    let delta_time = sqlx::types::time::OffsetDateTime::now_utc() - start_time;
+
+    status_callback(Status::Finished(delta_time.as_seconds_f32()));
     Ok(())
 }
 
@@ -146,15 +162,15 @@ fn manipulate<F: Fn(Status)>(
     config: &Config,
     raw: &RawMeta,
     ephemeride: Option<&ParMeta>,
-    adjust_path: &str,
+    tmp_path: &impl AsRef<Path>,
     status_callback: F,
 ) -> Result<(), ARPAError> {
     // Make a new file for adjusting
     status_callback(Status::Copying(
-        raw.file_path.clone(),
-        adjust_path.to_string(),
+        raw.path.display().to_string(),
+        tmp_path.as_ref().display().to_string(),
     ));
-    std::fs::copy(&raw.file_path, adjust_path)?;
+    std::fs::copy(&raw.path, tmp_path)?;
 
     // > If parfile: reinstall ephemerides with pam -----------------------
     if let Some(par) = ephemeride {
@@ -163,17 +179,23 @@ fn manipulate<F: Fn(Status)>(
         _ = psrchive(
             config,
             "pam",
-            &["-m", "-E", &par.file_path, "--update_dm", adjust_path],
+            &[
+                "-m", 
+                "-E", 
+                &par.file_path, 
+                "--update_dm", 
+                &tmp_path.as_ref().display().to_string()
+            ],
         )?;
     }
 
     // Make a new file for manipulating
-    manipulate_pam(config, adjust_path, 1, 4, None, None, status_callback)
+    manipulate_pam(config, tmp_path, 1, 4, None, None, status_callback)
 }
 
 fn manipulate_pam<F: Fn(Status)>(
     config: &Config,
-    in_path: &str,
+    in_path: &impl AsRef<Path>,
     n_subints: usize,
     n_channels: usize,
     set_n_bins: Option<usize>,
@@ -200,7 +222,7 @@ fn manipulate_pam<F: Fn(Status)>(
     if let Some(n) = set_n_bins {
         args.append(&mut vec!["--setnbin".to_string(), n.to_string()]);
     }
-    args.push(in_path.to_string());
+    args.push(in_path.as_ref().display().to_string());
 
     psrchive(config, "pam", &args)?;
 
@@ -211,7 +233,7 @@ fn manipulate_pam<F: Fn(Status)>(
 fn generate_toas<F: Fn(Status)>(
     config: &Config,
     template: &TemplateMeta,
-    manip_path: &str,
+    manip_path: &PathBuf,
     plot: bool,
     status_callback: F,
 ) -> Result<TOAMeta, ARPAError> {
@@ -243,7 +265,8 @@ fn generate_toas<F: Fn(Status)>(
             &plot_file,
         ]);
     }
-    args.push(manip_path);
+    let path_string = manip_path.display().to_string();
+    args.push(&path_string);
 
     let result = psrchive(config, "pat", &args)?;
     if !result.starts_with("FORMAT 1") {
@@ -283,17 +306,18 @@ async fn archive_toas<F: Fn(Status)>(
     raw: &RawMeta,
     ephemeride: Option<&ParMeta>,
     template: &TemplateMeta,
+    start_time: sqlx::types::time::OffsetDateTime,
     status_callback: F,
 ) -> Result<(i32, Vec<i32>), ARPAError> {
     status_callback(Status::LoggingProcess);
     let meta = ProcessInfo::new(
         user_id,
-        raw,
         ephemeride,
         template,
         toa_meta.channels,
         toa_meta.subints,
         &archivist.config().behaviour.toa_fitting,
+        start_time,
     );
     let process_id = archivist.insert(meta).await?;
 
@@ -310,7 +334,6 @@ async fn archive_toas<F: Fn(Status)>(
                     raw.observer_id,
                     process_id,
                     template.id,
-                    raw.id,
                 )
             })
         })
@@ -327,7 +350,7 @@ async fn archive_toas<F: Fn(Status)>(
 
 async fn do_diagnostics<F: Fn(Status)>(
     archivist: &mut Archivist,
-    adjust_path: &str,
+    adjust_path: &PathBuf,
     process_id: i32,
     toa_meta: TOAMeta,
     toa_ids: Vec<i32>,
@@ -339,8 +362,6 @@ async fn do_diagnostics<F: Fn(Status)>(
 
     let header = RawFileHeader::get(archivist.config(), adjust_path)?;
     let dir = header.get_intended_directory(archivist.config());
-
-    // We put the diagnostic together with the rawfile
     let diag_path = format!("{dir}/process{process_id}");
     // And add a symlink at the top
     let crossref_path = format!(
@@ -363,14 +384,14 @@ async fn do_diagnostics<F: Fn(Status)>(
         )
         .await;
 
-        status_callback(Status::FinishedDiagnostic {
-            diagnostic,
-            passed: status.is_ok(),
-        });
-
-        if let Err(err) = status {
+        if let Err(err) = &status {
             error!("{err}\n\nContinuing anyway...");
         }
+
+        status_callback(Status::FinishedDiagnostic {
+            diagnostic,
+            status: status,
+        });
     }
 
     // Move toa diagplot too
