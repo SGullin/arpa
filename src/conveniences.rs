@@ -25,10 +25,12 @@ const BLOCK_SIZE: usize = 16 * 16 * 8192;
 /// Checks a path for a file.
 /// # Errors
 /// The file does not exist, or there is an io problem.
-pub fn assert_exists(path: &str) -> Result<()> {
+pub fn assert_exists(path: &impl AsRef<Path>) -> Result<()> {
     match std::fs::exists(path) {
         Ok(true) => Ok(()),
-        Ok(false) => Err(ARPAError::MissingFileOrDirectory(path.into())),
+        Ok(false) => Err(ARPAError::MissingFileOrDirectory(
+            path.as_ref().into())
+        ),
         Err(err) => Err(ARPAError::IOFault(err)),
     }
 }

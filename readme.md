@@ -44,10 +44,11 @@ The ARGOS logo belongs to the ARGOS Consortium.
 
 ## Changelog
 ### 0.3.2
- - 
+- Removed rawfile storage
+- Non empty `stderr` from `psrchive` tool triggers an error, instead of just a warning.
 
 ### 0.3.1
- - Removed complicating use of config module.
+- Removed complicating use of config module.
 
 ### 0.3.0
- - Prepared as library.
+- Prepared as library.

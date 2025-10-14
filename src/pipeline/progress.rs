@@ -1,4 +1,4 @@
-use crate::conveniences::display_elapsed_time;
+use crate::{conveniences::display_elapsed_time, ARPAError};
 
 #[derive(Debug, Default)]
 /// Represents the current status of the pipeline.
@@ -14,7 +14,7 @@ pub enum Status {
     /// The pipeline is just starting.
     Starting {
         /// Raw file path and id.
-        raw: (String, i32),
+        raw: String,
         /// Pulsar alias and id.
         pulsar: (String, i32),
         /// Ephemeride path and id, if any.
@@ -57,8 +57,8 @@ pub enum Status {
     FinishedDiagnostic {
         /// The kind of diagnostic performed.
         diagnostic: String,
-        /// Whether it ran ok.
-        passed: bool,
+        /// THe status of the diagnostic.
+        status: Result<(), ARPAError>,
     },
 
     /// Archived the plots from `psrchive::pat` (with count and whether it
@@ -66,7 +66,7 @@ pub enum Status {
     ArchivedTOAPlots(Option<usize>),
 
     /// The pipeline just finished (with total duration provided).
-    Finished(std::time::Duration),
+    Finished(f32),
 }
 
 impl std::fmt::Display for Status {
@@ -84,13 +84,11 @@ impl std::fmt::Display for Status {
                 f,
                 "Cooking with the following:\
                 \n * Raw file:   {}\
-                \n               id = {}\
                 \n * Pulsar:     {} \
                 \n               id = {}\
                 \n * Ephemeride: {}\
                 \n * Template:   id = {}\n",
-                raw.0,
-                raw.1,
+                raw,
                 pulsar.0,
                 pulsar.1,
                 ephemeride.as_ref().map_or_else(
@@ -111,14 +109,14 @@ impl std::fmt::Display for Status {
             Self::ArchivedTOAs(n) => write!(f, "Archived {n} TOA(s)!"),
             Self::Diagnosing(n) => write!(f, "Running {n} diagnostic(s)..."),
 
-            Self::FinishedDiagnostic { diagnostic, passed } => write!(
+            Self::FinishedDiagnostic { diagnostic, status: Ok(()) } => write!(
                 f,
-                "Finished diagnostic {diagnostic}{}",
-                if *passed {
-                    " with no problems."
-                } else {
-                    ", but an error ocurred."
-                },
+                "Finished diagnostic {diagnostic} with no problems.",
+            ),
+            Self::FinishedDiagnostic { diagnostic, status: Err(err) } => write!(
+                f,
+                "Finished diagnostic {diagnostic}, but an error occured:\n{}",
+                err,
             ),
 
             Self::ArchivedTOAPlots(Some(n)) => {
@@ -129,7 +127,9 @@ impl std::fmt::Display for Status {
             }
 
             Self::Finished(dt) => {
-                write!(f, "Finished in {}!", display_elapsed_time(*dt))
+                write!(f, "Finished in {}!", display_elapsed_time(
+                    std::time::Duration::from_secs_f32(*dt))
+                )
             }
         }
     }

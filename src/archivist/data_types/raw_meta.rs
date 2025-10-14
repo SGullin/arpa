@@ -3,34 +3,22 @@
 use crate::{
     ARPAError, Archivist, Result,
     archivist::table::TableItem,
-    config::Config,
     conveniences::{assert_exists, check_file_equality, compute_checksum},
     data_types::{ObsSystem, PulsarMeta},
 };
-use item_macro::TableItem;
 use log::{debug, info, warn};
-use sqlx::{prelude::FromRow, types::uuid};
-use std::fs::File;
+use sqlx::prelude::FromRow;
+use std::{fs::File, path::{Path, PathBuf}};
 use std::os::unix::fs::MetadataExt;
 
 mod header;
 pub use header::RawFileHeader;
 
-#[derive(Debug, FromRow, Clone, TableItem)]
-#[table(RawMetas)]
-/// Metadata of a stored raw file.
+#[derive(Debug, FromRow, Clone)]
+/// Information from a rawfile.
 pub struct RawMeta {
-    /// Mandatory id.
-    #[derived]
-    pub id: i32,
-
-    /// Path to file.
-    #[unique]
-    pub file_path: String,
-    /// 128 bit checksum.
-    #[unique]
-    pub checksum: uuid::Uuid,
-
+    /// Path to the file.
+    pub path: PathBuf,
     /// ID of pulsar it refers to.
     pub pulsar_id: i32,
     /// ID of observation unit that produced file.
@@ -45,14 +33,15 @@ impl RawMeta {
     ///  - the header can't be read;
     ///  - the observation system is missing;
     ///  - the `archivist` encounters an error.
-    pub async fn parse(archivist: &mut Archivist, path: &str) -> Result<Self> {
+    pub async fn parse(
+        archivist: &mut Archivist, 
+        path: &impl AsRef<Path>
+    ) -> Result<Self> {
         assert_exists(path)?;
 
         // Check that the file is ok
         let header = RawFileHeader::get(archivist.config(), path)?;
         debug!("Got raw header info.");
-
-        // TODO also get user id and put it into meta
 
         // Get telescope name
         let obs_system = ObsSystem::find(
@@ -72,7 +61,7 @@ impl RawMeta {
 
         // Get pulsar name
         let res = archivist
-            .find::<PulsarMeta>(&format!("j_name='{}'", &header.psr_name,))
+            .find::<PulsarMeta>(&format!("alias='{}'", &header.psr_name))
             .await?;
 
         let pulsar_id = if let Some(r) = res {
@@ -101,28 +90,8 @@ impl RawMeta {
             archivist.insert(meta).await?
         };
 
-        // Move the file into a better spot in the archive
-        let mut file_path = path.to_string();
-        let checksum = if archivist.config().behaviour.archive_rawfiles {
-            info!("Archiving file...");
-            let directory = header.get_intended_directory(archivist.config());
-            archive_file(
-                archivist.config(),
-                &mut file_path,
-                &directory,
-                &header.filename,
-            )?
-        } else {
-            info!("Currently set to not archive raw files...");
-            compute_checksum(&file_path, true)?
-        };
-
-        let checksum = uuid::Uuid::from_u128(checksum);
-
         Ok(Self {
-            id: 0,
-            file_path,
-            checksum,
+            path: PathBuf::from(path.as_ref()),
             pulsar_id,
             observer_id,
         })
@@ -137,7 +106,6 @@ impl RawMeta {
 ///  1) the io calls fail; and
 ///  2) the threads can't be joined.
 pub fn archive_file(
-    config: &Config,
     source: &mut String,
     directory: &str,
     name: &str,
@@ -193,13 +161,7 @@ pub fn archive_file(
         return Err(ARPAError::ChecksumFail(path));
     }
 
-    if config.behaviour.move_rawfiles {
-        std::fs::remove_file(&source)?;
-        info!("Successfully moved {source} to {path}");
-    } else {
-        info!("Successfully copied {source} to {path}");
-    }
-
+    info!("Successfully copied {source} to {path}");
     *source = path;
 
     Ok(src_checksum)

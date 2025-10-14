@@ -1,4 +1,4 @@
-use std::{process::Output, string::FromUtf8Error};
+use std::{path::PathBuf, process::Output, string::FromUtf8Error};
 
 use crate::archivist::ArchivistError;
 
@@ -10,8 +10,9 @@ pub enum ARPAError {
     PSRUtils(psrutils::error::PsruError),
     ToolFailure(String, Output),
     JoinThread(String),
-    ConfigFailure(toml::de::Error),
-    MissingFileOrDirectory(String),
+    ConfigLoadFailure(toml::de::Error),
+    ConfigSaveFailure(toml::ser::Error),
+    MissingFileOrDirectory(PathBuf),
     StringConversion(Vec<u8>),
     ArchivistError(ArchivistError),
 
@@ -31,6 +32,8 @@ pub enum ARPAError {
     DiagnosticPlotBadFile(String),
     TOAExpectedFormat(String),
 }
+
+impl std::error::Error for ARPAError {}
 
 impl std::fmt::Display for ARPAError {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
@@ -53,11 +56,14 @@ impl std::fmt::Display for ARPAError {
                 f,
                 "One of your threads was unable to join, saying: \"{msg}\"",
             ),
-            Self::ConfigFailure(err) => {
+            Self::ConfigLoadFailure(err) => {
                 write!(f, "Encountered error reading config file: {err}",)
             }
+            Self::ConfigSaveFailure(err) => {
+                write!(f, "Encountered error writing config file: {err}",)
+            }
             Self::MissingFileOrDirectory(path) => {
-                write!(f, "File or directory \"{path}\" is missing.",)
+                write!(f, "File or directory \"{}\" is missing.", path.display())
             }
             Self::StringConversion(bytes) => {
                 write!(f, "Failed to parse string from bytes: {bytes:?}",)
@@ -134,7 +140,12 @@ impl From<FromUtf8Error> for ARPAError {
 }
 impl From<toml::de::Error> for ARPAError {
     fn from(value: toml::de::Error) -> Self {
-        Self::ConfigFailure(value)
+        Self::ConfigLoadFailure(value)
+    }
+}
+impl From<toml::ser::Error> for ARPAError {
+    fn from(value: toml::ser::Error) -> Self {
+        Self::ConfigSaveFailure(value)
     }
 }
 impl From<ArchivistError> for ARPAError {

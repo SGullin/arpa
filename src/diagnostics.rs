@@ -1,5 +1,7 @@
 //! Diagnostic tools for the pipeline.
 
+use std::path::{Path, PathBuf};
+
 use crate::data_types::{DiagnosticFloat, DiagnosticPlot, archive_file};
 use crate::{ARPAError, Archivist, Result};
 
@@ -21,7 +23,7 @@ pub async fn run_diagnostic(
     archivist: &mut Archivist,
     diagnostic: &str,
     process: i32,
-    file: &str,
+    file: &impl AsRef<Path>,
     directory: &str,
 ) -> Result<()> {
     let out = match diagnostic {
@@ -34,7 +36,6 @@ pub async fn run_diagnostic(
     match out {
         DiagnosticOut::Plot(mut path) => {
             _ = archive_file(
-                archivist.config(),
                 &mut path,
                 directory,
                 &format!("{diagnostic}.png"),
