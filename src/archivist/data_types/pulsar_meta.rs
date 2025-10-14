@@ -4,7 +4,7 @@ use std::str::FromStr;
 
 use crate::{ARPAError, Table, archivist::TableItem};
 
-#[derive(Debug, sqlx::FromRow, Clone)]
+#[derive(Debug, sqlx::FromRow, Clone, serde::Serialize, serde::Deserialize)]
 /// Metadata of a pulsar.
 pub struct PulsarMeta {
     /// Mandatory id.
