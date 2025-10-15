@@ -1,20 +1,99 @@
 use std::path::Path;
 
 use log::{debug, info, warn};
+use serde::{Deserialize, Serialize};
 
 use crate::{
-    ARPAError, Archivist,
+    ARPAError, Archivist, Result,
     conveniences::assert_exists,
     data_types::{ParMeta, RawMeta, TemplateMeta},
 };
 
-/// Parses the raw file to be used for the pipeline
-pub async fn read_raw_file(
-    archivist: &mut Archivist,
-    path: &impl AsRef<Path>,
-) -> Result<RawMeta, ARPAError> {
-    debug!("Reading raw file...");
-    RawMeta::parse(archivist, path).await
+#[derive(Debug, Clone, Serialize, Deserialize)]
+/// A struct to keep all the necessary settings for the pipeline to run.
+pub struct PipelineSettings {
+    pub(super) diagnostics: bool,
+
+    // Pam settings
+    pub(super) time_scrunch_mode: TimeScrunchMode,
+    pub(super) bin_scrunch_mode: BinScrunchMode,
+    pub(super) channel_count: usize,
+    //calibration settings..?
+}
+impl PipelineSettings {
+    /// Reads the settings from a `.toml` file.
+    ///
+    /// # Errors
+    /// Forwarded from `toml` and `std::fs`.
+    pub fn from_file(path: impl AsRef<Path>) -> Result<Self> {
+        let data = std::fs::read_to_string(path)?;
+
+        toml::from_str(&data).map_err(ARPAError::ConfigLoadFailure)
+    }
+
+    /// Writes the settings to a `.toml` file.
+    ///
+    /// # Errors
+    /// Forwarded from `toml` and `std::fs`.
+    pub fn to_file(&self, path: impl AsRef<Path>) -> Result<()> {
+        let data = toml::to_string(self)?;
+
+        std::fs::write(path, data).map_err(ARPAError::IOFault)
+    }
+
+    #[must_use]
+    /// Disables the post-TOA diagnostics.
+    pub const fn disable_diagnostics(mut self) -> Self {
+        self.diagnostics = false;
+        self
+    }
+
+    #[must_use]
+    /// Sets time crunch options.
+    pub const fn time_scrunch_mode(mut self, value: TimeScrunchMode) -> Self {
+        self.time_scrunch_mode = value;
+        self
+    }
+
+    #[must_use]
+    /// Sets bin crunch options.
+    pub const fn bin_scrunch_mode(mut self, value: BinScrunchMode) -> Self {
+        self.bin_scrunch_mode = value;
+        self
+    }
+
+    #[must_use]
+    /// Sets number of channels.
+    pub const fn channel_count(mut self, value: usize) -> Self {
+        self.channel_count = value;
+        self
+    }
+}
+impl Default for PipelineSettings {
+    fn default() -> Self {
+        Self {
+            diagnostics: true,
+            time_scrunch_mode: TimeScrunchMode::None,
+            bin_scrunch_mode: BinScrunchMode::None,
+            channel_count: 1,
+        }
+    }
+}
+
+#[allow(missing_docs)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub enum TimeScrunchMode {
+    None,
+    ByFactor(f32),
+    SubIntCount(usize),
+    SubIntLength(f32),
+}
+
+#[allow(missing_docs)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub enum BinScrunchMode {
+    None,
+    Count(usize),
 }
 
 /// Parses `text` to load a `ParMeta`. This will try two things:
@@ -30,7 +109,7 @@ pub async fn parse_input_ephemeride(
     archivist: &mut Archivist,
     raw: &RawMeta,
     text: &str,
-) -> Result<ParMeta, ARPAError> {
+) -> Result<ParMeta> {
     match text.parse() {
         Ok(id) => archivist.get(id).await.map_err(Into::into),
         Err(_) => ephermeride_from_file(archivist, raw, text).await,
@@ -41,9 +120,9 @@ async fn ephermeride_from_file(
     archivist: &mut Archivist,
     raw: &RawMeta,
     path: &str,
-) -> Result<ParMeta, ARPAError> {
+) -> Result<ParMeta> {
     debug!("Parsing ephemeride path");
-    assert_exists(&path)?;
+    assert_exists(path)?;
 
     // Insert the file into the table
     info!("Inserting ephemeride {path}");
@@ -85,7 +164,7 @@ pub async fn parse_input_template(
     archivist: &mut Archivist,
     raw: &RawMeta,
     text: &str,
-) -> Result<TemplateMeta, ARPAError> {
+) -> Result<TemplateMeta> {
     match text.parse() {
         Ok(id) => archivist.get(id).await.map_err(Into::into),
         Err(_) => template_from_file(archivist, raw, text).await,
@@ -96,9 +175,9 @@ async fn template_from_file(
     archivist: &mut Archivist,
     raw: &RawMeta,
     path: &str,
-) -> Result<TemplateMeta, ARPAError> {
+) -> Result<TemplateMeta> {
     debug!("Picking template by path");
-    assert_exists(&path)?;
+    assert_exists(path)?;
 
     // Insert the file into the table
     info!("Inserting new template {path}");

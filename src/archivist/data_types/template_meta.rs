@@ -3,9 +3,10 @@
 use crate::archivist::table::TableItem;
 use crate::conveniences::compute_checksum;
 use item_macro::TableItem;
+use serde::{Deserialize, Serialize};
 use sqlx::{prelude::FromRow, types::uuid};
 
-#[derive(Debug, FromRow, Clone, TableItem)]
+#[derive(Debug, Serialize, Deserialize, FromRow, Clone, TableItem)]
 #[table(TemplateMetas)]
 /// Metadata for a template file.
 pub struct TemplateMeta {

@@ -24,8 +24,31 @@ To get started, you need to have a folder of `sql` files creating the tables you
 This crate uses PostgreSQL, which means that you need to have such a DB to connect to if you want to use `arpa`. For testing on MacOS, there is e.g. https://postgresapp.com.
 
 ## Usage
+### Running the pipeline
+There is a `Pipeline` struct that you'll want to use. It is expected to change internally, but the interface should remain very similar. 
+
+First, you create a `PipelineSettings` object, e.g.:
+```rust
+let settings = PipelineSettings::from_file(&"pipeline.toml")
+.unwrap_or_else(|_| PipelineSettings::default());
+```
+Then you create a `Pipeline` object with your input data and settings, and call `run` with an `Archivist` and a status callback function.
+```rust
+let mut pipeline = Pipeline::setup(
+    raw_file, 
+    template,
+    ephemeride, 
+    settings,
+);
+pipeline.run(
+    &mut archivist, 
+    |status: Status| log::info!("{status}"),
+).await?;
+```
+
 ### Debugging
 `arpa` makes frequent use of the [`log` crate](https://crates.io/crates/log), and so it is suggested to use [`env_logger`](https://crates.io/crates/env_logger) or similar to debug.
+`sqlx` does so too, so be vary of the sheer amount of `debug` level logs you may face (e.g. one per query) if you're not selectively setting the level.
 
 ### New tables
 If you fork this and want to add more tables, the [derive macro](https://github.com/SGullin/arpa-item-macro) might come in handy. The only necessities is that 
@@ -35,20 +58,9 @@ If you fork this and want to add more tables, the [derive macro](https://github.
 In the future, support will be added for custom tables without forking.
 
 ## GUI
-There is a GUI application developed for internal use, publicly available at https://github.com/SGullin/arpa-gui.
+There is a GUI application being developed for internal use, publicly available at https://github.com/SGullin/arpa-gui.
 
 # License
 `argos-arpa` is distributed under the terms of the [MIT License](LICENSE-MIT).
 
 The ARGOS logo belongs to the ARGOS Consortium.
-
-## Changelog
-### 0.3.2
-- Removed rawfile storage
-- Non empty `stderr` from `psrchive` tool triggers an error, instead of just a warning.
-
-### 0.3.1
-- Removed complicating use of config module.
-
-### 0.3.0
-- Prepared as library.

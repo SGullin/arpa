@@ -31,6 +31,7 @@ pub enum ARPAError {
     UnknownDiagnostic(String),
     DiagnosticPlotBadFile(String),
     TOAExpectedFormat(String),
+    MissingPsrchive,
 }
 
 impl std::error::Error for ARPAError {}
@@ -63,7 +64,11 @@ impl std::fmt::Display for ARPAError {
                 write!(f, "Encountered error writing config file: {err}",)
             }
             Self::MissingFileOrDirectory(path) => {
-                write!(f, "File or directory \"{}\" is missing.", path.display())
+                write!(
+                    f,
+                    "File or directory \"{}\" is missing.",
+                    path.display()
+                )
             }
             Self::StringConversion(bytes) => {
                 write!(f, "Failed to parse string from bytes: {bytes:?}",)
@@ -113,6 +118,12 @@ impl std::fmt::Display for ARPAError {
             Self::TOAExpectedFormat(line) => write!(
                 f,
                 "Expected \"FORMAT 1\" from psrchive::pat, but got \"{line}\".",
+            ),
+            Self::MissingPsrchive => write!(
+                f,
+                "psrchive could not be run. \
+                Please check your installation or the path supplied in \
+                confif.toml."
             ),
         }
     }
