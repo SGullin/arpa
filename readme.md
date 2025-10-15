@@ -29,7 +29,7 @@ There is a `Pipeline` struct that you'll want to use. It is expected to change i
 
 First, you create a `PipelineSettings` object, e.g.:
 ```rust
-let settings = PipelineSettings::from_file(&"pipeline.toml")
+let settings = PipelineSettings::from_file("pipeline.toml")
 .unwrap_or_else(|_| PipelineSettings::default());
 ```
 Then you create a `Pipeline` object with your input data and settings, and call `run` with an `Archivist` and a status callback function.
