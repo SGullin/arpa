@@ -22,7 +22,6 @@ serde = "1.0.219"
 
 [dependencies.uuid]
 version = "1.18.0"
-# Lets you generate random UUIDs
 features = [
     "serde",
 ]
