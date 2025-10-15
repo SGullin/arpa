@@ -41,11 +41,11 @@ impl RawFileHeader {
     /// # Errors
     /// This depends on a call to `psrchive` that may fail for various reasons,
     /// but there are also many `parse` calls that fail.
-    pub fn get(config: &Config, file_path: &impl AsRef<Path>) -> Result<Self> {
-        let filename = file_path.as_ref().file_name().map_or(
-            "unnamed".to_string(), 
-            |n| n.to_string_lossy().to_string()
-        );
+    pub fn get(config: &Config, file_path: impl AsRef<Path>) -> Result<Self> {
+        let filename = file_path
+            .as_ref()
+            .file_name()
+            .map_or("unnamed".to_string(), |n| n.to_string_lossy().to_string());
 
         let keys = [
             "nbin", "nchan", "npol", "nsub", "type", "telescop", "name", "dec",
@@ -161,14 +161,20 @@ impl RawFileHeader {
     /// Fails only if `psrchive` can't be called.
     pub fn get_items(
         config: &Config,
-        path: &impl AsRef<Path>,
+        path: impl AsRef<Path>,
         keys: &[&str],
     ) -> Result<Vec<String>> {
         let column_string = keys.join(",");
         let result = psrchive(
-            config, 
-            "vap", 
-            &["-n", "-c", &column_string, &path.as_ref().display().to_string()])?;
+            config,
+            "vap",
+            &[
+                "-n",
+                "-c",
+                &column_string,
+                &path.as_ref().display().to_string(),
+            ],
+        )?;
 
         // We get a string of values
         let values = result

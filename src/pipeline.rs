@@ -6,10 +6,13 @@
 //! The `parse_input_` functions are helpers to parse text as either `id`s or
 //! paths and take the corresponding actions.
 
-use std::{path::{Path, PathBuf}, process::Command};
+use std::{
+    path::{Path, PathBuf},
+    process::Command,
+};
 
 use crate::{
-    ARPAError, Archivist,
+    ARPAError, Archivist, Result,
     config::Config,
     conveniences::{assert_exists, compute_checksum, parse},
     data_types::{
@@ -17,136 +20,160 @@ use crate::{
         RawMeta, TOAInfo, TemplateMeta,
     },
     diagnostics::run_diagnostic,
-    external_tools::psrchive,
+    external_tools::{Args, psrchive},
 };
 use log::{debug, error, warn};
-use psrutils::{error::PsruError, timfile::TOAInfo as TOA};
+use psrutils::timfile::TOAInfo as TOA;
 
 mod arguments;
 mod progress;
 pub use arguments::{
-    parse_input_ephemeride, 
+    BinScrunchMode, PipelineSettings, TimeScrunchMode, parse_input_ephemeride,
     parse_input_template,
-    read_raw_file
 };
 pub use progress::Status;
 
-/// Runs the toa-generation pipeline.
-///
-/// The `status_callback` is just for information on the progress of the
-/// pipeline, the minimal (informing) case would be `|s: Status| info!("{s}")`.
-///
-/// Any errors encountered will be sent via the callback before propagating to
-/// the caller of this method.
-///
-/// # Notes
-/// While it is possible to create the different `meta`s without uploading them
-/// to the database, doing so might cause errors down the line. Things like
-/// [`ProcessInfo`] are set to use `sql` references, so `sqlx` will complain if
-/// they do not exists. This will cause the whole pipeline to fail and any
-/// previous actions to be rolled back.
-///
-/// # Errors
-/// There are many ways this can fail, e.g.:
-///  - the `archivist` fails;
-///  - a path is not reachable;
-///  - the database information is out of date.
-///
-/// It should not fail because of bad luck though :)
-pub async fn cook<F: Fn(Status) + Send + Sync>(
-    archivist: &mut Archivist,
+/// Represents the information to run the pipeline.
+pub struct Pipeline {
     raw: RawMeta,
     ephemeride: Option<ParMeta>,
     template: TemplateMeta,
-    diagnostics: bool,
-    status_callback: F,
-) -> Result<(), ARPAError> {
-    // Check some psrchive tools
-    assert!(
-        psrchive(archivist.config(), "pat", &["-h"]).is_ok(), 
-        "psrchive::pat could not be run..."
-    );
 
-    let start_time = sqlx::types::time::OffsetDateTime::now_utc();
-    
-    let pulsar_name = archivist
-        .get::<PulsarMeta>(raw.pulsar_id)
-        .await
-        .inspect_err(|e| status_callback(Status::Error(e.to_string())))?
-        .alias;
+    settings: PipelineSettings,
 
-    status_callback(Status::Starting {
-        raw: raw.path.display().to_string(),
-        pulsar: (pulsar_name, raw.pulsar_id),
-        ephemeride: ephemeride.clone().map(|e| (e.file_path, e.id)),
-        template: template.id,
-    });
+    temp_path: PathBuf,
+}
+impl Pipeline {
+    /// Sets up the pipeline
+    pub fn setup(
+        raw: RawMeta,
+        template: TemplateMeta,
+        ephemeride: Option<ParMeta>,
+        settings: PipelineSettings,
+    ) -> Self {
+        Self {
+            raw,
+            ephemeride,
+            template,
+            settings,
+            temp_path: PathBuf::new(),
+        }
+    }
 
-    let user_id = 0;
-    // let new_path = format!("{}/tmp.ar", archivist.config().paths.temp_dir);
-    let mut new_path = PathBuf::new();
-    new_path.push(&archivist.config().paths.temp_dir);
-    new_path.push("tmp");
-    new_path.set_extension("ar");
+    /// Runs the toa-generation pipeline.
+    ///
+    /// The `status_callback` is just for information on the progress of the
+    /// pipeline, the minimal (informing) case would be `|s: Status| info!("{s}")`.
+    ///
+    /// Any errors encountered will be sent via the callback before propagating to
+    /// the caller of this method.
+    ///
+    /// # Notes
+    /// While it is possible to create the different `meta`s without uploading them
+    /// to the database, doing so might cause errors down the line. Things like
+    /// [`ProcessInfo`] are set to use `sql` references, so `sqlx` will complain if
+    /// they do not exists. This will cause the whole pipeline to fail and any
+    /// previous actions to be rolled back.
+    ///
+    /// # Errors
+    /// There are many ways this can fail, e.g.:
+    ///  - the `archivist` fails;
+    ///  - a path is not reachable;
+    ///  - the database information is out of date.
+    ///
+    /// It should not fail because of bad luck though :)
+    pub async fn run(
+        &mut self,
+        archivist: &mut Archivist,
+        callback: impl Fn(Status) + Send + Sync,
+    ) -> Result<()> {
+        // Check that psrchive works
+        if psrchive(archivist.config(), "pat", &["-h"]).is_err() {
+            return Err(ARPAError::MissingPsrchive);
+        }
 
-    manipulate(
-        archivist.config(),
-        &raw,
-        ephemeride.as_ref(),
-        &new_path,
-        &status_callback,
-    )
-    .inspect_err(|e| status_callback(Status::Error(e.to_string())))?;
+        let start_time = sqlx::types::time::OffsetDateTime::now_utc();
 
-    let toa_meta = generate_toas(
-        archivist.config(),
-        &template,
-        &new_path,
-        diagnostics,
-        &status_callback,
-    )
-    .inspect_err(|e| status_callback(Status::Error(e.to_string())))?;
+        let pulsar_name = archivist
+            .get::<PulsarMeta>(self.raw.pulsar_id)
+            .await
+            .inspect_err(|e| callback(Status::Error(e.to_string())))?
+            .alias;
 
-    archivist
-        .start_transaction()
-        .await
-        .inspect_err(|e| status_callback(Status::Error(e.to_string())))?;
+        callback(Status::Starting {
+            raw: self.raw.path.display().to_string(),
+            pulsar: (pulsar_name, self.raw.pulsar_id),
+            ephemeride: self.ephemeride.clone().map(|e| (e.file_path, e.id)),
+            template: self.template.id,
+        });
 
-    let (process_id, toa_ids) = archive_toas(
-        archivist,
-        &toa_meta,
-        user_id,
-        &raw,
-        ephemeride.as_ref(),
-        &template,
-        start_time,
-        &status_callback,
-    )
-    .await
-    .inspect_err(|e| status_callback(Status::Error(e.to_string())))?;
+        let user_id = 0;
+        self.temp_path.clear();
+        self.temp_path.push(&archivist.config().paths.temp_dir);
+        self.temp_path.push("tmp");
+        self.temp_path.set_extension("ar");
 
-    // > Create diagnostics & register plots ------------------------------
-    if diagnostics {
-        do_diagnostics(
+        manipulate(
+            archivist.config(),
+            &self.settings,
+            &self.raw.path,
+            self.ephemeride.as_ref(),
+            &self.temp_path,
+            &callback,
+        )
+        .inspect_err(|e| callback(Status::Error(e.to_string())))?;
+
+        let toa_meta = generate_toas(
+            archivist.config(),
+            &self.template,
+            &self.temp_path,
+            self.settings.diagnostics,
+            &callback,
+        )
+        .inspect_err(|e| callback(Status::Error(e.to_string())))?;
+
+        archivist
+            .start_transaction()
+            .await
+            .inspect_err(|e| callback(Status::Error(e.to_string())))?;
+
+        let (process_id, toa_ids) = archive_toas(
             archivist,
-            &new_path,
-            process_id,
-            toa_meta,
-            toa_ids,
-            &status_callback,
+            &toa_meta,
+            user_id,
+            &self.raw,
+            self.ephemeride.as_ref(),
+            &self.template,
+            start_time,
+            &callback,
         )
         .await
-        .inspect_err(|e| status_callback(Status::Error(e.to_string())))?;
+        .inspect_err(|e| callback(Status::Error(e.to_string())))?;
+
+        // > Create diagnostics & register plots ------------------------------
+        if self.settings.diagnostics {
+            do_diagnostics(
+                archivist,
+                &self.temp_path,
+                process_id,
+                toa_meta,
+                toa_ids,
+                &callback,
+            )
+            .await
+            .inspect_err(|e| callback(Status::Error(e.to_string())))?;
+        }
+        archivist
+            .commit_transaction()
+            .await
+            .inspect_err(|e| callback(Status::Error(e.to_string())))?;
+
+        let delta_time =
+            sqlx::types::time::OffsetDateTime::now_utc() - start_time;
+
+        callback(Status::Finished(delta_time.as_seconds_f32()));
+        Ok(())
     }
-    archivist
-        .commit_transaction()
-        .await
-        .inspect_err(|e| status_callback(Status::Error(e.to_string())))?;
-
-    let delta_time = sqlx::types::time::OffsetDateTime::now_utc() - start_time;
-
-    status_callback(Status::Finished(delta_time.as_seconds_f32()));
-    Ok(())
 }
 
 struct TOAMeta {
@@ -160,17 +187,18 @@ struct TOAMeta {
 
 fn manipulate<F: Fn(Status)>(
     config: &Config,
-    raw: &RawMeta,
+    settings: &PipelineSettings,
+    raw_path: &Path,
     ephemeride: Option<&ParMeta>,
-    tmp_path: &impl AsRef<Path>,
+    tmp_path: &Path,
     status_callback: F,
-) -> Result<(), ARPAError> {
+) -> Result<()> {
     // Make a new file for adjusting
     status_callback(Status::Copying(
-        raw.path.display().to_string(),
-        tmp_path.as_ref().display().to_string(),
+        raw_path.display().to_string(),
+        tmp_path.display().to_string(),
     ));
-    std::fs::copy(&raw.path, tmp_path)?;
+    std::fs::copy(raw_path, tmp_path)?;
 
     // > If parfile: reinstall ephemerides with pam -----------------------
     if let Some(par) = ephemeride {
@@ -180,51 +208,60 @@ fn manipulate<F: Fn(Status)>(
             config,
             "pam",
             &[
-                "-m", 
-                "-E", 
-                &par.file_path, 
-                "--update_dm", 
-                &tmp_path.as_ref().display().to_string()
+                "-m",
+                "-E",
+                &par.file_path,
+                "--update_dm",
+                &tmp_path.display().to_string(),
             ],
         )?;
     }
 
     // Make a new file for manipulating
-    manipulate_pam(config, tmp_path, 1, 4, None, None, status_callback)
+    // manipulate_pam(config, tmp_path, 1, 4, None, None, status_callback)
+    manipulate_pam(config, tmp_path, settings, status_callback)
 }
 
 fn manipulate_pam<F: Fn(Status)>(
     config: &Config,
-    in_path: &impl AsRef<Path>,
-    n_subints: usize,
-    n_channels: usize,
-    set_n_bins: Option<usize>,
-    set_t_subints: Option<usize>,
+    path: &Path,
+    settings: &PipelineSettings,
     status_callback: F,
-) -> Result<(), ARPAError> {
+) -> Result<()> {
     // We need to copy in->out. pam will just say "no filenames were specified"
     // if a file is specified, but doesn't exist. I guess it works in-place
     // std::fs::copy(in_path, out_path)?;
     status_callback(Status::Manipulating);
 
-    let mut args = vec![
-        "-m".to_string(),
-        "-p".to_string(),
-        // "ar2".to_string(), // what does this do..?
-        "--setnchn".to_string(),
-        n_channels.to_string(),
-    ];
-    if let Some(n) = set_t_subints {
-        args.append(&mut vec!["--settsub".to_string(), n.to_string()]);
-    } else {
-        args.append(&mut vec!["--setnsub".to_string(), n_subints.to_string()]);
-    }
-    if let Some(n) = set_n_bins {
-        args.append(&mut vec!["--setnbin".to_string(), n.to_string()]);
-    }
-    args.push(in_path.as_ref().display().to_string());
+    let mut args = Args::new()
+        .arg(&"-m")
+        .arg(&"-p")
+        .arg(&"--setnchn")
+        .arg(&settings.channel_count);
 
-    psrchive(config, "pam", &args)?;
+    match &settings.time_scrunch_mode {
+        TimeScrunchMode::None => {}
+        TimeScrunchMode::ByFactor(f) => {
+            args.add(&"-t").add(f);
+        }
+        TimeScrunchMode::SubIntCount(sic) => {
+            args.add(&"--setnsub").add(sic);
+        }
+        TimeScrunchMode::SubIntLength(sil) => {
+            args.add(&"--settsub").add(sil);
+        }
+    }
+
+    match &settings.bin_scrunch_mode {
+        arguments::BinScrunchMode::None => {}
+        arguments::BinScrunchMode::Count(n) => {
+            args.add(&"--setnbin").add(n);
+        }
+    }
+
+    args.add(&path.display());
+
+    psrchive(config, "pam", &args.0)?;
 
     Ok(())
 }
@@ -233,10 +270,10 @@ fn manipulate_pam<F: Fn(Status)>(
 fn generate_toas<F: Fn(Status)>(
     config: &Config,
     template: &TemplateMeta,
-    manip_path: &PathBuf,
+    path: &PathBuf,
     plot: bool,
     status_callback: F,
-) -> Result<TOAMeta, ARPAError> {
+) -> Result<TOAMeta> {
     status_callback(Status::VerifyingTemplate);
 
     // Double check cheksum
@@ -265,7 +302,7 @@ fn generate_toas<F: Fn(Status)>(
             &plot_file,
         ]);
     }
-    let path_string = manip_path.display().to_string();
+    let path_string = path.display().to_string();
     args.push(&path_string);
 
     let result = psrchive(config, "pat", &args)?;
@@ -277,7 +314,7 @@ fn generate_toas<F: Fn(Status)>(
     // Now pat has modified the manip file, so we can read from it
     let header = RawFileHeader::get_items(
         config,
-        manip_path,
+        path,
         &["nchan", "nsub", "name", "intmjd", "fracmjd"],
     )?;
     debug!("Got header!");
@@ -299,6 +336,7 @@ fn generate_toas<F: Fn(Status)>(
     })
 }
 
+#[allow(clippy::too_many_arguments)]
 async fn archive_toas<F: Fn(Status)>(
     archivist: &mut Archivist,
     toa_meta: &TOAMeta,
@@ -308,7 +346,7 @@ async fn archive_toas<F: Fn(Status)>(
     template: &TemplateMeta,
     start_time: sqlx::types::time::OffsetDateTime,
     status_callback: F,
-) -> Result<(i32, Vec<i32>), ARPAError> {
+) -> Result<(i32, Vec<i32>)> {
     status_callback(Status::LoggingProcess);
     let meta = ProcessInfo::new(
         user_id,
@@ -337,7 +375,7 @@ async fn archive_toas<F: Fn(Status)>(
                 )
             })
         })
-        .collect::<Result<Vec<_>, PsruError>>()?;
+        .collect::<std::result::Result<Vec<_>, _>>()?;
 
     let mut ids = Vec::with_capacity(toas.len());
     for toa in toas {
@@ -355,7 +393,7 @@ async fn do_diagnostics<F: Fn(Status)>(
     toa_meta: TOAMeta,
     toa_ids: Vec<i32>,
     status_callback: F,
-) -> Result<(), ARPAError> {
+) -> Result<()> {
     status_callback(Status::Diagnosing(
         archivist.config().behaviour.diagnostics.len(),
     ));
@@ -388,10 +426,7 @@ async fn do_diagnostics<F: Fn(Status)>(
             error!("{err}\n\nContinuing anyway...");
         }
 
-        status_callback(Status::FinishedDiagnostic {
-            diagnostic,
-            status: status,
-        });
+        status_callback(Status::FinishedDiagnostic { diagnostic, status });
     }
 
     // Move toa diagplot too

@@ -13,20 +13,20 @@ use crate::{ARPAError, Result};
 ///
 /// # Errors
 /// Fails if the fils is unreadable or the plotter fails.
-pub fn run(config: &Config, file: &impl AsRef<Path>) -> Result<DiagnosticOut> {
-    info!("Creating composite plots for {}...", file.as_ref().display());
+pub fn run(config: &Config, file: impl AsRef<Path>) -> Result<DiagnosticOut> {
+    info!(
+        "Creating composite plots for {}...",
+        file.as_ref().display()
+    );
 
     // let fname = file.rfind('/').map_or(file, |i| &file[i + 1..]);
     let fname = file
-    .as_ref()
-    .file_name()
-    .map_or(
-        "unnamed".to_string(), 
-        |n| n.to_string_lossy().to_string(),
-    );
+        .as_ref()
+        .file_name()
+        .map_or("unnamed".to_string(), |n| n.to_string_lossy().to_string());
     let tmp = format!("{}/tmp.png", config.paths.temp_dir);
     let tmpcmd = format!("{tmp}/PNG");
-    let header = RawFileHeader::get(config, file)?;
+    let header = RawFileHeader::get(config, &file)?;
     let info = format!(
         "above:l='{}\n\
         {}    {} ({})\n\
@@ -43,8 +43,8 @@ pub fn run(config: &Config, file: &impl AsRef<Path>) -> Result<DiagnosticOut> {
 
     if header.sub_count * header.channel_count == 0 {
         return Err(ARPAError::DiagnosticPlotBadFile(
-            file.as_ref().display().to_string())
-        );
+            file.as_ref().display().to_string(),
+        ));
     }
     match (header.sub_count > 1, header.channel_count > 1) {
         (true, true) => plot_all(config, file, &tmpcmd, &info)?,
@@ -60,7 +60,7 @@ pub fn run(config: &Config, file: &impl AsRef<Path>) -> Result<DiagnosticOut> {
 
 fn plot_all(
     config: &Config,
-    path: &impl AsRef<Path>,
+    path: impl AsRef<Path>,
     outcmd: &str,
     info: &str,
 ) -> Result<()> {
@@ -109,7 +109,7 @@ fn plot_all(
 
 fn plot_no_freq(
     config: &Config,
-    path: &impl AsRef<Path>,
+    path: impl AsRef<Path>,
     outcmd: &str,
     info: &str,
 ) -> Result<()> {
@@ -150,7 +150,7 @@ fn plot_no_freq(
 
 fn plot_no_time(
     config: &Config,
-    path: &impl AsRef<Path>,
+    path: impl AsRef<Path>,
     outcmd: &str,
     info: &str,
 ) -> Result<()> {
@@ -192,7 +192,7 @@ fn plot_no_time(
 
 fn plot_prof_only(
     config: &Config,
-    path: &impl AsRef<Path>,
+    path: impl AsRef<Path>,
     outcmd: &str,
     info: &str,
 ) -> Result<()> {

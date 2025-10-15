@@ -73,6 +73,9 @@ impl Config {
     }
 
     /// Saves the configuration to a file.
+    ///
+    /// # Errors
+    /// Forwarded from `toml` and `std::fs`.
     pub fn save(&self, path: impl AsRef<Path>) -> Result<(), ARPAError> {
         let text = toml::to_string(self)?;
         std::fs::write(path, text)?;
@@ -81,7 +84,7 @@ impl Config {
     }
 }
 impl Default for Config {
-    /// Provides sensible default settings. 
+    /// Provides sensible default settings.
     /// Note that this does not set paths, however.
     fn default() -> Self {
         let database = Database {
@@ -103,8 +106,8 @@ impl Default for Config {
             diagnostics_dir: String::new(),
         };
 
-        Self { 
-            database, 
+        Self {
+            database,
             behaviour,
             paths,
         }

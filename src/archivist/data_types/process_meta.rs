@@ -38,7 +38,7 @@ impl ProcessInfo {
         n_channels: i16,
         n_subints: i16,
         method: &str,
-        started_at: sqlx::types::time::OffsetDateTime
+        started_at: sqlx::types::time::OffsetDateTime,
     ) -> Self {
         Self {
             id: 0,

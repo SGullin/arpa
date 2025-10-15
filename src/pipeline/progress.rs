@@ -1,4 +1,4 @@
-use crate::{conveniences::display_elapsed_time, ARPAError};
+use crate::{ARPAError, conveniences::display_elapsed_time};
 
 #[derive(Debug, Default)]
 /// Represents the current status of the pipeline.
@@ -57,7 +57,7 @@ pub enum Status {
     FinishedDiagnostic {
         /// The kind of diagnostic performed.
         diagnostic: String,
-        /// THe status of the diagnostic.
+        /// The status of the diagnostic.
         status: Result<(), ARPAError>,
     },
 
@@ -109,14 +109,19 @@ impl std::fmt::Display for Status {
             Self::ArchivedTOAs(n) => write!(f, "Archived {n} TOA(s)!"),
             Self::Diagnosing(n) => write!(f, "Running {n} diagnostic(s)..."),
 
-            Self::FinishedDiagnostic { diagnostic, status: Ok(()) } => write!(
+            Self::FinishedDiagnostic {
+                diagnostic,
+                status: Ok(()),
+            } => {
+                write!(f, "Finished diagnostic {diagnostic} with no problems.",)
+            }
+            Self::FinishedDiagnostic {
+                diagnostic,
+                status: Err(err),
+            } => write!(
                 f,
-                "Finished diagnostic {diagnostic} with no problems.",
-            ),
-            Self::FinishedDiagnostic { diagnostic, status: Err(err) } => write!(
-                f,
-                "Finished diagnostic {diagnostic}, but an error occured:\n{}",
-                err,
+                "Finished diagnostic {diagnostic}, but an error occured:\n\
+                {err}",
             ),
 
             Self::ArchivedTOAPlots(Some(n)) => {
@@ -127,8 +132,12 @@ impl std::fmt::Display for Status {
             }
 
             Self::Finished(dt) => {
-                write!(f, "Finished in {}!", display_elapsed_time(
-                    std::time::Duration::from_secs_f32(*dt))
+                write!(
+                    f,
+                    "Finished in {}!",
+                    display_elapsed_time(std::time::Duration::from_secs_f32(
+                        *dt
+                    ))
                 )
             }
         }

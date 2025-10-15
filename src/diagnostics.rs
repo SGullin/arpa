@@ -1,6 +1,6 @@
 //! Diagnostic tools for the pipeline.
 
-use std::path::{Path, PathBuf};
+use std::path::Path;
 
 use crate::data_types::{DiagnosticFloat, DiagnosticPlot, archive_file};
 use crate::{ARPAError, Archivist, Result};
@@ -23,12 +23,12 @@ pub async fn run_diagnostic(
     archivist: &mut Archivist,
     diagnostic: &str,
     process: i32,
-    file: &impl AsRef<Path>,
+    file: impl AsRef<Path>,
     directory: &str,
 ) -> Result<()> {
     let out = match diagnostic {
-        "snr" => snr::run(archivist.config(), file),
-        "composite" => composite::run(archivist.config(), file),
+        "snr" => snr::run(archivist.config(), &file),
+        "composite" => composite::run(archivist.config(), &file),
 
         other => Err(ARPAError::UnknownDiagnostic(other.to_string())),
     }?;

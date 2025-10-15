@@ -2,9 +2,10 @@
 
 use crate::{archivist::TableItem, conveniences::compute_checksum};
 use item_macro::TableItem;
+use serde::{Deserialize, Serialize};
 use sqlx::types::uuid;
 
-#[derive(Debug, Clone, sqlx::FromRow, TableItem)]
+#[derive(Debug, Serialize, Deserialize, Clone, sqlx::FromRow, TableItem)]
 #[table(ParMetas)]
 /// The metadata of an ephemeride
 pub struct ParMeta {

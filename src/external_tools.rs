@@ -1,9 +1,31 @@
 //! Functions to call external tools.
 
-use std::{ffi::OsStr, process::Command};
+use std::{
+    ffi::{OsStr, OsString},
+    process::Command,
+};
 
-use crate::{config::Config, conveniences::display_elapsed_time, ARPAError, Result};
-use log::{debug, info, warn};
+use crate::{
+    ARPAError, Result, config::Config, conveniences::display_elapsed_time,
+};
+use log::{debug, warn};
+
+pub struct Args(pub Vec<OsString>);
+impl Args {
+    pub const fn new() -> Self {
+        Self(Vec::new())
+    }
+
+    pub fn arg(mut self, arg: &impl ToString) -> Self {
+        self.0.push(arg.to_string().into());
+        self
+    }
+
+    pub fn add(&mut self, arg: &impl ToString) -> &mut Self {
+        self.0.push(arg.to_string().into());
+        self
+    }
+}
 
 /// Runs a psrchive tool `tool`, and returns its result.
 /// # Errors
@@ -52,9 +74,7 @@ pub fn psrchive(
             "Tool printed the following to stderr: \n{}",
             String::from_utf8_lossy(&output.stderr)
         );
-        return Err(ARPAError::ToolFailure(
-            tool.to_string(), output,
-        ));
+        return Err(ARPAError::ToolFailure(tool.to_string(), output));
     }
 
     debug!(
@@ -68,17 +88,17 @@ pub fn psrchive(
     Ok(result)
 }
 
-/// Calls `tempo2` to perform a fit.
-/// # Errors
-/// Fails if tempo fails.
-pub fn tempo2_fit(par_file: &str, tim_file: &str) -> Result<()> {
-    let result = Command::new("tempo2")
-        .arg("-f")
-        .arg(par_file)
-        .arg(tim_file)
-        .status()?;
+// /// Calls `tempo2` to perform a fit.
+// /// # Errors
+// /// Fails if tempo fails.
+// pub fn tempo2_fit(par_file: &str, tim_file: &str) -> Result<()> {
+//     let result = Command::new("tempo2")
+//         .arg("-f")
+//         .arg(par_file)
+//         .arg(tim_file)
+//         .status()?;
 
-    info!("{result}");
+//     info!("{result}");
 
-    Ok(())
-}
+//     Ok(())
+// }

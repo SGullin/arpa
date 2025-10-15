@@ -7,14 +7,18 @@ use crate::{
     data_types::{ObsSystem, PulsarMeta},
 };
 use log::{debug, info, warn};
+use serde::{Deserialize, Serialize};
 use sqlx::prelude::FromRow;
-use std::{fs::File, path::{Path, PathBuf}};
 use std::os::unix::fs::MetadataExt;
+use std::{
+    fs::File,
+    path::{Path, PathBuf},
+};
 
 mod header;
 pub use header::RawFileHeader;
 
-#[derive(Debug, FromRow, Clone)]
+#[derive(Debug, Serialize, Deserialize, FromRow, Clone)]
 /// Information from a rawfile.
 pub struct RawMeta {
     /// Path to the file.
@@ -34,13 +38,13 @@ impl RawMeta {
     ///  - the observation system is missing;
     ///  - the `archivist` encounters an error.
     pub async fn parse(
-        archivist: &mut Archivist, 
-        path: &impl AsRef<Path>
+        archivist: &mut Archivist,
+        path: impl AsRef<Path>,
     ) -> Result<Self> {
-        assert_exists(path)?;
+        assert_exists(&path)?;
 
         // Check that the file is ok
-        let header = RawFileHeader::get(archivist.config(), path)?;
+        let header = RawFileHeader::get(archivist.config(), &path)?;
         debug!("Got raw header info.");
 
         // Get telescope name

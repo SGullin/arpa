@@ -11,7 +11,7 @@ pub mod config;
 pub mod conveniences;
 pub mod diagnostics;
 mod error;
-pub mod external_tools;
+pub(crate) mod external_tools;
 pub mod pipeline;
 
 pub use archivist::{Archivist, data_types, table::Table, table::TableItem};

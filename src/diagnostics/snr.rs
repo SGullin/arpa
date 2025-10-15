@@ -7,21 +7,20 @@ use crate::{
 };
 use log::info;
 
-pub fn run(config: &Config, path: &impl AsRef<Path>) -> Result<DiagnosticOut> {
+pub fn run(config: &Config, path: impl AsRef<Path>) -> Result<DiagnosticOut> {
     info!("Calculating SNR for {}...", path.as_ref().display());
-    let res =
-        psrchive(
-            config, 
-            "psrstat", 
-            &[
-                "-Qq",
-                "-j", 
-                "DTFp", 
-                "-c", 
-                "snr", 
-                &path.as_ref().display().to_string()
-            ],
-        )?;
+    let res = psrchive(
+        config,
+        "psrstat",
+        &[
+            "-Qq",
+            "-j",
+            "DTFp",
+            "-c",
+            "snr",
+            &path.as_ref().display().to_string(),
+        ],
+    )?;
 
     Ok(DiagnosticOut::Value(parse(res.trim())?))
 }
