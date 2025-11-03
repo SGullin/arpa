@@ -31,7 +31,7 @@ pub enum ARPAError {
     UnknownDiagnostic(String),
     DiagnosticPlotBadFile(String),
     TOAExpectedFormat(String),
-    MissingPsrchive,
+    MissingPsrchive(String),
 }
 
 impl std::error::Error for ARPAError {}
@@ -119,11 +119,11 @@ impl std::fmt::Display for ARPAError {
                 f,
                 "Expected \"FORMAT 1\" from psrchive::pat, but got \"{line}\".",
             ),
-            Self::MissingPsrchive => write!(
+            Self::MissingPsrchive(tool) => write!(
                 f,
-                "psrchive could not be run. \
+                "psrchive::{tool} could not be run. \
                 Please check your installation or the path supplied in \
-                confif.toml."
+                config.toml."
             ),
         }
     }

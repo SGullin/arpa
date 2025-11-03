@@ -3,16 +3,16 @@ name = "argos-arpa"
 description = "A pulsar data archive for the ARGOS project (https://argos-telescope.eu/)."
 authors = ["Samuel Gullin <gullin@ia.forth.gr>"]
 license = "MIT"
-version = "0.3.3"
+version = "0.3.4"
 edition = "2024"
 repository = "https://github.com/SGullin/arpa"
 keywords = ["database", "pulsar"]
 categories = ["science", "database-implementations"]
 
 [dependencies]
-argos-arpa-item-macro = "0.1.1"
+argos-arpa-item-macro = "0.1.2"
 tokio = { version = "1.43.0", features = ["full"] }
-sqlx = { version = "0.8", features = ["postgres", "runtime-tokio", "tls-native-tls", "time", "uuid"] }
+sqlx = { version = "0.8", features = ["postgres", "runtime-tokio", "tls-rustls", "time", "uuid"] }
 env_logger = "0.11.6"
 log = "0.4.25"
 psrutils = "0.2.7"

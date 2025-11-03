@@ -6,7 +6,7 @@ use serde::{Deserialize, Serialize};
 use sqlx::types::uuid;
 
 #[derive(Debug, Serialize, Deserialize, Clone, sqlx::FromRow, TableItem)]
-#[table(ParMetas)]
+#[table(par_metas)]
 /// The metadata of an ephemeride
 pub struct ParMeta {
     /// Mandatory id.

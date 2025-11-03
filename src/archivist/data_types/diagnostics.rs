@@ -2,9 +2,8 @@
 
 use crate::TableItem;
 use item_macro::TableItem;
-
 #[derive(sqlx::FromRow, TableItem)]
-#[table(DiagnosticFloats)]
+#[table(diag_floats)]
 /// An entry referring to a diagnostic wiht a float value.
 pub struct DiagnosticFloat {
     /// Mandatory id.
@@ -18,7 +17,7 @@ pub struct DiagnosticFloat {
     pub result: f32,
 }
 #[derive(sqlx::FromRow, TableItem)]
-#[table(DiagnosticPlots)]
+#[table(diag_plots)]
 /// An entry referring to a diagnostic plot.
 pub struct DiagnosticPlot {
     /// Mandatory id.

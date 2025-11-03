@@ -6,7 +6,7 @@ use sqlx::types::time;
 use crate::{ARPAError, Result, archivist::table::TableItem};
 
 #[derive(Debug, sqlx::FromRow, TableItem)]
-#[table(Users)]
+#[table(users)]
 /// A user on this machine.
 pub struct User {
     #[derived]
