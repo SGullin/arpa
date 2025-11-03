@@ -1,49 +1,6 @@
-#[derive(Debug, Clone, Copy)]
-#[allow(missing_docs)]
-pub enum Table {
-    Users,
+use std::future::Future;
 
-    PulsarMetas,
-    ParMetas,
-    RawMetas,
-    TemplateMetas,
-
-    Toas,
-
-    Telescopes,
-    ObsSystems,
-
-    ProcessMetas,
-    DiagnosticFloats,
-    DiagnosticPlots,
-}
-impl Table {
-    /// A static `&str` for the name of the table.
-    pub const fn name(self) -> &'static str {
-        match self {
-            Self::Users => "users",
-
-            Self::PulsarMetas => "pulsar_meta",
-            Self::ParMetas => "par_meta",
-            Self::RawMetas => "raw_meta",
-            Self::TemplateMetas => "template_meta",
-
-            Self::Toas => "toas",
-
-            Self::Telescopes => "telescopes",
-            Self::ObsSystems => "obs_systems",
-
-            Self::ProcessMetas => "process_meta",
-            Self::DiagnosticFloats => "diag_floats",
-            Self::DiagnosticPlots => "diag_plots",
-        }
-    }
-}
-impl std::fmt::Display for Table {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{}", self.name())
-    }
-}
+use sqlx::{PgConnection, PgPool};
 
 /// This trait is what makes the `archivist` work. Any struct expected to go
 /// into an `sql` table needs to implement this.
@@ -54,20 +11,66 @@ pub trait TableItem:
     + std::marker::Unpin
 {
     /// Which table we go into.
-    const TABLE: Table;
+    const TABLE: &'static str;
 
     /// Our id.
     fn id(&self) -> i32;
 
+    #[deprecated]
     /// The columns used for insertion.
     fn insert_columns() -> &'static str;
 
+    #[deprecated]
     /// The values used for insertion.
     fn insert_values(&self) -> String;
 
+    #[deprecated]
     /// The values used for checking conflicts.
     fn unique_values(&self) -> String;
 
+    #[deprecated]
     /// The columns used for selection.
     fn select() -> &'static str;
+
+    /// Checks if an id exists.
+    fn exists(
+        pool: &PgPool,
+        id: i32,
+    ) -> impl Future<Output = sqlx::Result<bool>> + Send;
+
+    /// Gets all the items.
+    fn select_all(
+        pool: &PgPool,
+    ) -> impl Future<Output = sqlx::Result<Vec<Self>>> + Send;
+
+    /// Selects an element with the specified id.
+    fn select_by_id(
+        pool: &PgPool,
+        id: i32,
+    ) -> impl Future<Output = sqlx::Result<Self>> + Send;
+
+    /// Returns the id of any row that matches any column of `self`.
+    fn check_unique(
+        &self,
+        pool: &PgPool,
+    ) -> impl Future<Output = sqlx::Result<Option<i32>>> + Send;
+
+    /// Deletes entry of the specified id.
+    fn delete(
+        tx: &mut PgConnection,
+        id: i32,
+    ) -> impl Future<Output = sqlx::Result<()>> + Send;
+
+    /// Inserts `self` and returns newly acquired id.
+    fn insert(
+        &self,
+        tx: &mut PgConnection,
+    ) -> impl Future<Output = sqlx::Result<i32>> + Send;
+
+    /// Updates row of id `id` with `self`.
+    fn update(
+        &self,
+        tx: &mut PgConnection,
+        id: i32,
+    ) -> impl Future<Output = sqlx::Result<()>> + Send;
 }

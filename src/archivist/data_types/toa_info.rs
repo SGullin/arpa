@@ -4,7 +4,7 @@ use crate::archivist::table::TableItem;
 use item_macro::TableItem;
 
 #[derive(Debug, sqlx::FromRow, TableItem)]
-#[table(Toas)]
+#[table(toas)]
 /// TOA information. This comes from `psrchive`.
 pub struct TOAInfo {
     #[derived]

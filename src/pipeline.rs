@@ -87,11 +87,6 @@ impl Pipeline {
         archivist: &mut Archivist,
         callback: impl Fn(Status) + Send + Sync,
     ) -> Result<()> {
-        // Check that psrchive works
-        if psrchive(archivist.config(), "pat", &["-h"]).is_err() {
-            return Err(ARPAError::MissingPsrchive);
-        }
-
         let start_time = sqlx::types::time::OffsetDateTime::now_utc();
 
         let pulsar_name = archivist

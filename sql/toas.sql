@@ -6,8 +6,8 @@ create table if not exists toas (
     -- The data -------------------------
     pulsar_id integer not null,
     observer_id integer not null,
-    toa_int integer,
+    toa_int integer not null,
     toa_frac double precision not null,
-    toa_err real,
+    toa_err real not null,
     frequency real not null
 );

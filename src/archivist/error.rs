@@ -1,16 +1,14 @@
-use super::Table;
-
 #[derive(Debug)]
 pub enum ArchivistError {
     Sqlx(sqlx::Error),
 
-    EntryAlreadyExists(String, String, i32),
+    EntryAlreadyExists(String, i32),
 
     NoTransactionToCommit,
     NoTransactionToRollback,
     TransactionAlreadyLive,
 
-    MissingID(Table, i32),
+    MissingID(&'static str, i32),
 }
 
 impl std::fmt::Display for ArchivistError {
@@ -18,9 +16,9 @@ impl std::fmt::Display for ArchivistError {
         match self {
             Self::Sqlx(error) => write!(f, "[sqlx] {error}",),
 
-            Self::EntryAlreadyExists(key, table, id) => write!(
+            Self::EntryAlreadyExists(table, id) => write!(
                 f,
-                "({key}) conflicts with preexisting entry (id = {id}) in {table}",
+                "New entry conflicts with preexisting one (id = {id}) in {table}.",
             ),
 
             Self::NoTransactionToCommit => write!(

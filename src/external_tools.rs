@@ -88,6 +88,31 @@ pub fn psrchive(
     Ok(result)
 }
 
+/// Checks if psrchive can be run.
+/// # Errors
+/// If any of the necessary psrchive tools can't be run.
+pub fn check_psrchive(config: &Config) -> Result<()> {
+    for tool in ["vap", "pam", "pat"] {
+        let tool_path = if config.paths.psrchive.is_empty() {
+            tool.to_string()
+        } else {
+            format!("{}/{}", config.paths.psrchive, tool)
+        };
+
+        let exists = std::process::Command::new("/bin/sh")
+            .arg("-c")
+            .arg(format!("command -v {tool_path}"))
+            .output()
+            .is_ok_and(|out| out.status.success());
+
+        if !exists {
+            return Err(ARPAError::MissingPsrchive(tool.to_string()));
+        }
+    }
+
+    Ok(())
+}
+
 // /// Calls `tempo2` to perform a fit.
 // /// # Errors
 // /// Fails if tempo fails.

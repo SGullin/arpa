@@ -7,7 +7,7 @@ use serde::{Deserialize, Serialize};
 use sqlx::{prelude::FromRow, types::uuid};
 
 #[derive(Debug, Serialize, Deserialize, FromRow, Clone, TableItem)]
-#[table(TemplateMetas)]
+#[table(template_metas)]
 /// Metadata for a template file.
 pub struct TemplateMeta {
     /// Mandatory id.

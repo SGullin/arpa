@@ -5,7 +5,7 @@ use item_macro::TableItem;
 use sqlx::prelude::FromRow;
 
 #[derive(FromRow, Clone, TableItem)]
-#[table(ProcessMetas)]
+#[table(process_metas)]
 /// The information of a process
 pub struct ProcessInfo {
     /// Mandatory id.
