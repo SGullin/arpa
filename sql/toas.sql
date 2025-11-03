@@ -3,12 +3,11 @@ create table if not exists toas (
     -- Toaster has these ----------------
     process_id integer not null,
     template_id integer not null,
-    rawfile_id integer not null,
     -- The data -------------------------
     pulsar_id integer not null,
     observer_id integer not null,
-    toa_int integer,
+    toa_int integer not null,
     toa_frac double precision not null,
-    toa_err real,
+    toa_err real not null,
     frequency real not null
 );

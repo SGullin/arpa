@@ -2,12 +2,18 @@
 
 use std::str::FromStr;
 
-use crate::{ARPAError, Table, archivist::TableItem};
+use item_macro::TableItem;
 
-#[derive(Debug, sqlx::FromRow, Clone)]
+use crate::{ARPAError, archivist::TableItem};
+
+#[derive(
+    Debug, sqlx::FromRow, TableItem, Clone, serde::Serialize, serde::Deserialize,
+)]
+#[table(pulsar_metas)]
 /// Metadata of a pulsar.
 pub struct PulsarMeta {
     /// Mandatory id.
+    #[derived]
     pub id: i32,
 
     /// What this pulsar is commonly called.
@@ -144,50 +150,50 @@ impl PulsarMeta {
             && name.len() <= 20
     }
 }
-impl TableItem for PulsarMeta {
-    const TABLE: Table = Table::PulsarMetas;
+// impl TableItem for PulsarMeta {
+//     const TABLE: &'static str = &"pulsar_metas";
 
-    fn id(&self) -> i32 {
-        self.id
-    }
+//     fn id(&self) -> i32 {
+//         self.id
+//     }
 
-    fn insert_values(&self) -> String {
-        format!(
-            "'{}', {}, {}, {}, {}, {}",
-            self.alias,
-            self.j_name
-                .as_ref()
-                .map_or_else(|| "NULL".into(), |j| format!("'{j}'")),
-            self.b_name
-                .as_ref()
-                .map_or_else(|| "NULL".into(), |b| format!("'{b}'")),
-            self.j2000_ra
-                .as_ref()
-                .map_or_else(|| "NULL".into(), |r| format!("'{r}'")),
-            self.j2000_dec
-                .as_ref()
-                .map_or_else(|| "NULL".into(), |d| format!("'{d}'")),
-            self.master_parfile_id
-                .as_ref()
-                .map_or_else(|| "NULL".into(), |m| format!("{m}")),
-        )
-    }
+//     fn insert_values(&self) -> String {
+//         format!(
+//             "'{}', {}, {}, {}, {}, {}",
+//             self.alias,
+//             self.j_name
+//                 .as_ref()
+//                 .map_or_else(|| "NULL".into(), |j| format!("'{j}'")),
+//             self.b_name
+//                 .as_ref()
+//                 .map_or_else(|| "NULL".into(), |b| format!("'{b}'")),
+//             self.j2000_ra
+//                 .as_ref()
+//                 .map_or_else(|| "NULL".into(), |r| format!("'{r}'")),
+//             self.j2000_dec
+//                 .as_ref()
+//                 .map_or_else(|| "NULL".into(), |d| format!("'{d}'")),
+//             self.master_parfile_id
+//                 .as_ref()
+//                 .map_or_else(|| "NULL".into(), |m| format!("{m}")),
+//         )
+//     }
 
-    fn insert_columns() -> &'static str {
-        "alias, j_name, b_name, j2000_ra, j2000_dec, master_parfile_id"
-    }
+//     fn insert_columns() -> &'static str {
+//         "alias, j_name, b_name, j2000_ra, j2000_dec, master_parfile_id"
+//     }
 
-    fn select() -> &'static str {
-        "id, alias, j_name, b_name, j2000_ra, j2000_dec, master_parfile_id"
-    }
+//     fn select() -> &'static str {
+//         "id, alias, j_name, b_name, j2000_ra, j2000_dec, master_parfile_id"
+//     }
 
-    fn unique_values(&self) -> String {
-        self.j_name.as_ref().map_or_else(
-            || format!("alias='{}'", self.alias),
-            |jn| format!("alias='{}' or j_name='{}'", self.alias, jn),
-        )
-    }
-}
+//     fn unique_values(&self) -> String {
+//         self.j_name.as_ref().map_or_else(
+//             || format!("alias='{}'", self.alias),
+//             |jn| format!("alias='{}' or j_name='{}'", self.alias, jn),
+//         )
+//     }
+// }
 impl FromStr for PulsarMeta {
     type Err = ARPAError;
 

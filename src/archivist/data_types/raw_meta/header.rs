@@ -1,3 +1,5 @@
+use std::path::Path;
+
 use crate::{
     ARPAError, Result, config::Config, conveniences::parse,
     external_tools::psrchive,
@@ -39,9 +41,11 @@ impl RawFileHeader {
     /// # Errors
     /// This depends on a call to `psrchive` that may fail for various reasons,
     /// but there are also many `parse` calls that fail.
-    pub fn get(config: &Config, file_path: &str) -> Result<Self> {
-        let index = file_path.rfind('/').map_or(0, |i| i + 1);
-        let filename = file_path[index..].to_string();
+    pub fn get(config: &Config, file_path: impl AsRef<Path>) -> Result<Self> {
+        let filename = file_path
+            .as_ref()
+            .file_name()
+            .map_or("unnamed".to_string(), |n| n.to_string_lossy().to_string());
 
         let keys = [
             "nbin", "nchan", "npol", "nsub", "type", "telescop", "name", "dec",
@@ -49,7 +53,7 @@ impl RawFileHeader {
             "basis", "backend", "mjd",
         ];
 
-        let values = get_header_items(config, file_path, &keys)?;
+        let values = Self::get_items(config, file_path, &keys)?;
 
         let mut i = 0;
         let header = Self {
@@ -143,32 +147,45 @@ impl RawFileHeader {
     pub fn get_intended_directory(&self, config: &Config) -> String {
         format!(
             "{}/{}/{}/{}/{}",
-            config.paths.rawfile_storage,
+            config.paths.diagnostics_dir,
             self.psr_name.to_uppercase(),
             self.telescope.to_lowercase(),
             self.receiver.to_lowercase(),
             self.backend.to_lowercase(),
         )
     }
-}
 
-fn get_header_items(
-    config: &Config,
-    path: &str,
-    keys: &[&str],
-) -> Result<Vec<String>> {
-    let column_string = keys.join(",");
-    let result = psrchive(config, "vap", &["-n", "-c", &column_string, path])?;
+    /// Calls `psrchive::vap` to get header items.
+    ///
+    /// # Errors
+    /// Fails only if `psrchive` can't be called.
+    pub fn get_items(
+        config: &Config,
+        path: impl AsRef<Path>,
+        keys: &[&str],
+    ) -> Result<Vec<String>> {
+        let column_string = keys.join(",");
+        let result = psrchive(
+            config,
+            "vap",
+            &[
+                "-n",
+                "-c",
+                &column_string,
+                &path.as_ref().display().to_string(),
+            ],
+        )?;
 
-    // We get a string of values
-    let values = result
-        .split_whitespace()
-        .map(str::to_string)
-        .collect::<Vec<_>>();
+        // We get a string of values
+        let values = result
+            .split_whitespace()
+            .map(str::to_string)
+            .collect::<Vec<_>>();
 
-    if values.len() != keys.len() + 1 {
-        return Err(ARPAError::VapKeyCount(keys.len() + 1, values.len()));
+        if values.len() != keys.len() + 1 {
+            return Err(ARPAError::VapKeyCount(keys.len() + 1, values.len()));
+        }
+
+        Ok(values)
     }
-
-    Ok(values)
 }

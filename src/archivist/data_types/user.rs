@@ -6,7 +6,7 @@ use sqlx::types::time;
 use crate::{ARPAError, Result, archivist::table::TableItem};
 
 #[derive(Debug, sqlx::FromRow, TableItem)]
-#[table(Users)]
+#[table(users)]
 /// A user on this machine.
 pub struct User {
     #[derived]
@@ -91,7 +91,7 @@ impl User {
     }
 
     /// The time this user was created (in the host's timekeeping system).
-    pub fn created_at(&self) -> time::OffsetDateTime {
+    pub const fn created_at(&self) -> time::OffsetDateTime {
         self.created_at
     }
 }

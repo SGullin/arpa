@@ -1,6 +1,6 @@
-use std::{process::Output, string::FromUtf8Error};
+use std::{path::PathBuf, process::Output, string::FromUtf8Error};
 
-use crate::{archivist::ArchivistError, conveniences::comma_separate};
+use crate::archivist::ArchivistError;
 
 #[derive(Debug)]
 #[allow(missing_docs)]
@@ -10,25 +10,31 @@ pub enum ARPAError {
     PSRUtils(psrutils::error::PsruError),
     ToolFailure(String, Output),
     JoinThread(String),
-    ConfigFailure(toml::de::Error),
-    MissingFileOrDirectory(String),
+    ConfigLoadFailure(toml::de::Error),
+    ConfigSaveFailure(toml::ser::Error),
+    MissingFileOrDirectory(PathBuf),
     StringConversion(Vec<u8>),
     ArchivistError(ArchivistError),
 
     MalformedInput(String),
     ParseFailed(String, &'static str),
-    FileCopy(u128, u128, u64, u64),
+    ChecksumFail(String),
 
     CantFind(String),
 
     ChefNoEphemeride,
     ChefNoTemplate,
     ChefNoRaw,
+    MissingEphemeride(i32),
     VapKeyCount(usize, usize),
 
     UnknownDiagnostic(String),
     DiagnosticPlotBadFile(String),
+    TOAExpectedFormat(String),
+    MissingPsrchive(String),
 }
+
+impl std::error::Error for ARPAError {}
 
 impl std::fmt::Display for ARPAError {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
@@ -51,11 +57,18 @@ impl std::fmt::Display for ARPAError {
                 f,
                 "One of your threads was unable to join, saying: \"{msg}\"",
             ),
-            Self::ConfigFailure(err) => {
+            Self::ConfigLoadFailure(err) => {
                 write!(f, "Encountered error reading config file: {err}",)
             }
+            Self::ConfigSaveFailure(err) => {
+                write!(f, "Encountered error writing config file: {err}",)
+            }
             Self::MissingFileOrDirectory(path) => {
-                write!(f, "File or directory \"{path}\" is missing.",)
+                write!(
+                    f,
+                    "File or directory \"{}\" is missing.",
+                    path.display()
+                )
             }
             Self::StringConversion(bytes) => {
                 write!(f, "Failed to parse string from bytes: {bytes:?}",)
@@ -70,15 +83,9 @@ impl std::fmt::Display for ARPAError {
             Self::ParseFailed(data, type_) => {
                 write!(f, "Failed to parse \"{data}\" as {type_}",)
             }
-            Self::FileCopy(src_cs, dst_cs, src_sz, dst_sz) => write!(
-                f,
-                "Copying file failed! \n\tchecksum: {} -> {}\n\tsize: {} -> \
-                {}",
-                src_cs,
-                dst_cs,
-                comma_separate(src_sz),
-                comma_separate(dst_sz),
-            ),
+            Self::ChecksumFail(file) => {
+                write!(f, "Checksum falied for file \"{file}\".",)
+            }
 
             Self::CantFind(thing) => write!(f, "Could not find {thing}.",),
 
@@ -91,6 +98,11 @@ impl std::fmt::Display for ARPAError {
             Self::ChefNoTemplate => {
                 write!(f, "Cannot build chef without template.")
             }
+            Self::MissingEphemeride(id) => write!(
+                f,
+                "Pulsar with id {id} has no master parfile set, but it was \
+                required by the pipeline."
+            ),
             Self::VapKeyCount(keys, values) => write!(
                 f,
                 "Psrchive::vap was asked for {keys} values but returned \
@@ -103,6 +115,16 @@ impl std::fmt::Display for ARPAError {
             Self::DiagnosticPlotBadFile(file) => {
                 write!(f, "Can't figure out what you want to plot from {file}.",)
             }
+            Self::TOAExpectedFormat(line) => write!(
+                f,
+                "Expected \"FORMAT 1\" from psrchive::pat, but got \"{line}\".",
+            ),
+            Self::MissingPsrchive(tool) => write!(
+                f,
+                "psrchive::{tool} could not be run. \
+                Please check your installation or the path supplied in \
+                config.toml."
+            ),
         }
     }
 }
@@ -129,7 +151,12 @@ impl From<FromUtf8Error> for ARPAError {
 }
 impl From<toml::de::Error> for ARPAError {
     fn from(value: toml::de::Error) -> Self {
-        Self::ConfigFailure(value)
+        Self::ConfigLoadFailure(value)
+    }
+}
+impl From<toml::ser::Error> for ARPAError {
+    fn from(value: toml::ser::Error) -> Self {
+        Self::ConfigSaveFailure(value)
     }
 }
 impl From<ArchivistError> for ARPAError {

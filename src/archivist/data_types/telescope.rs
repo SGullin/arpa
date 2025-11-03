@@ -4,7 +4,7 @@ use crate::{ARPAError, Archivist, Result, TableItem};
 use item_macro::TableItem;
 
 #[derive(sqlx::FromRow, TableItem)]
-#[table(Telescopes)]
+#[table(telescopes)]
 /// Identifier of a telescope.
 pub struct TelescopeId {
     #[derived]
@@ -18,7 +18,7 @@ pub struct TelescopeId {
 }
 
 #[derive(sqlx::FromRow, TableItem)]
-#[table(ObsSystems)]
+#[table(obs_systems)]
 /// An observation system.
 pub struct ObsSystem {
     /// Mandatory id.

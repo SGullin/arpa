@@ -1,7 +1,10 @@
+use std::path::Path;
+
 use log::info;
 
 use super::DiagnosticOut;
 use crate::config::Config;
+use crate::conveniences::assert_exists;
 use crate::data_types::RawFileHeader;
 use crate::external_tools::psrchive;
 use crate::{ARPAError, Result};
@@ -10,19 +13,27 @@ use crate::{ARPAError, Result};
 ///
 /// # Errors
 /// Fails if the fils is unreadable or the plotter fails.
-pub fn run(config: &Config, file: &str) -> Result<DiagnosticOut> {
-    info!("Creating composite plots for {file}...");
+pub fn run(config: &Config, file: impl AsRef<Path>) -> Result<DiagnosticOut> {
+    info!(
+        "Creating composite plots for {}...",
+        file.as_ref().display()
+    );
 
+    // let fname = file.rfind('/').map_or(file, |i| &file[i + 1..]);
+    let fname = file
+        .as_ref()
+        .file_name()
+        .map_or("unnamed".to_string(), |n| n.to_string_lossy().to_string());
     let tmp = format!("{}/tmp.png", config.paths.temp_dir);
     let tmpcmd = format!("{tmp}/PNG");
-    let header = RawFileHeader::get(config, file)?;
+    let header = RawFileHeader::get(config, &file)?;
     let info = format!(
-        "above:l={}\n\
+        "above:l='{}\n\
         {}    {} ({})\n\
         Length={:.1} s    BW={:.1} MHz\n\
-        N\\dbin\\u=$nbin    N\\dchan\\u=$nchan    N\\dsub\\u=$nsubint, \
+        N\\dbin\\u=$nbin    N\\dchan\\u=$nchan    N\\dsub\\u=$nsubint',\
         above:off=3.5",
-        file,
+        fname,
         header.telescope,
         header.receiver,
         header.backend,
@@ -31,7 +42,9 @@ pub fn run(config: &Config, file: &str) -> Result<DiagnosticOut> {
     );
 
     if header.sub_count * header.channel_count == 0 {
-        return Err(ARPAError::DiagnosticPlotBadFile(file.to_string()));
+        return Err(ARPAError::DiagnosticPlotBadFile(
+            file.as_ref().display().to_string(),
+        ));
     }
     match (header.sub_count > 1, header.channel_count > 1) {
         (true, true) => plot_all(config, file, &tmpcmd, &info)?,
@@ -40,12 +53,14 @@ pub fn run(config: &Config, file: &str) -> Result<DiagnosticOut> {
         (false, false) => plot_prof_only(config, file, &tmpcmd, &info)?,
     }
 
+    assert_exists(&tmp)?;
+
     Ok(DiagnosticOut::Plot(tmp))
 }
 
 fn plot_all(
     config: &Config,
-    path: &str,
+    path: impl AsRef<Path>,
     outcmd: &str,
     info: &str,
 ) -> Result<()> {
@@ -55,7 +70,7 @@ fn plot_all(
         "D",
         "-c",
         "above:c=,x:range=0:2",
-        path,
+        &path.as_ref().display().to_string(),
         "-D",
         outcmd,
         "-p",
@@ -94,7 +109,7 @@ fn plot_all(
 
 fn plot_no_freq(
     config: &Config,
-    path: &str,
+    path: impl AsRef<Path>,
     outcmd: &str,
     info: &str,
 ) -> Result<()> {
@@ -104,7 +119,7 @@ fn plot_no_freq(
         "D",
         "-c",
         "above:c=,x:range=0:2",
-        path,
+        &path.as_ref().display().to_string(),
         "-D",
         outcmd,
         "-p",
@@ -135,7 +150,7 @@ fn plot_no_freq(
 
 fn plot_no_time(
     config: &Config,
-    path: &str,
+    path: impl AsRef<Path>,
     outcmd: &str,
     info: &str,
 ) -> Result<()> {
@@ -145,7 +160,7 @@ fn plot_no_time(
         "D",
         "-c",
         "above:c=,x:range=0:2",
-        path,
+        &path.as_ref().display().to_string(),
         "-D",
         outcmd,
         "-p",
@@ -177,7 +192,7 @@ fn plot_no_time(
 
 fn plot_prof_only(
     config: &Config,
-    path: &str,
+    path: impl AsRef<Path>,
     outcmd: &str,
     info: &str,
 ) -> Result<()> {
@@ -187,7 +202,7 @@ fn plot_prof_only(
         "D",
         "-c",
         "above:c=,x:range=0:2",
-        path,
+        &path.as_ref().display().to_string(),
         "-D",
         outcmd,
         "-p",

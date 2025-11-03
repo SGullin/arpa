@@ -2,10 +2,11 @@
 
 use crate::{archivist::TableItem, conveniences::compute_checksum};
 use item_macro::TableItem;
+use serde::{Deserialize, Serialize};
 use sqlx::types::uuid;
 
-#[derive(Debug, Clone, sqlx::FromRow, TableItem)]
-#[table(ParMetas)]
+#[derive(Debug, Serialize, Deserialize, Clone, sqlx::FromRow, TableItem)]
+#[table(par_metas)]
 /// The metadata of an ephemeride
 pub struct ParMeta {
     /// Mandatory id.
@@ -25,10 +26,7 @@ impl ParMeta {
     /// Creates a new ephemeride meta object.
     /// # Errors
     /// Will only pass on errors from the io calls made.
-    pub fn new(
-        file_path: String,
-        pulsar_id: i32,
-    ) -> std::io::Result<Self> {
+    pub fn new(file_path: String, pulsar_id: i32) -> std::io::Result<Self> {
         let u128 = compute_checksum(&file_path, true)?;
         let checksum = uuid::Uuid::from_u128(u128);
 

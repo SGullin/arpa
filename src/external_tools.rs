@@ -1,19 +1,47 @@
 //! Functions to call external tools.
 
-use std::process::Command;
+use std::{
+    ffi::{OsStr, OsString},
+    process::Command,
+};
 
-use crate::{ARPAError, Result, config::Config};
-use log::{debug, info, warn};
+use crate::{
+    ARPAError, Result, config::Config, conveniences::display_elapsed_time,
+};
+use log::{debug, warn};
+
+pub struct Args(pub Vec<OsString>);
+impl Args {
+    pub const fn new() -> Self {
+        Self(Vec::new())
+    }
+
+    pub fn arg(mut self, arg: &impl ToString) -> Self {
+        self.0.push(arg.to_string().into());
+        self
+    }
+
+    pub fn add(&mut self, arg: &impl ToString) -> &mut Self {
+        self.0.push(arg.to_string().into());
+        self
+    }
+}
 
 /// Runs a psrchive tool `tool`, and returns its result.
 /// # Errors
 /// Fails if the tool cannot be called, if the tool fails, or if the tool's
 /// output is not UTF-8.
-pub fn psrchive(config: &Config, tool: &str, args: &[&str]) -> Result<String> {
+pub fn psrchive(
+    config: &Config,
+    tool: &str,
+    args: &[impl AsRef<OsStr>],
+) -> Result<String> {
     debug!(
         "Running psrchive::{}, with the following arguments: [{}\n]",
         tool,
-        args.iter().fold(String::new(), |acc, a| acc + "\n\t" + a),
+        args.iter().fold(String::new(), |acc, a| acc
+            + "\n\t"
+            + &a.as_ref().to_string_lossy()),
     );
 
     let tool_path = if config.paths.psrchive.is_empty() {
@@ -22,22 +50,36 @@ pub fn psrchive(config: &Config, tool: &str, args: &[&str]) -> Result<String> {
         format!("{}/{}", config.paths.psrchive, tool)
     };
 
-    let output = Command::new(tool_path).args(args).output()?;
+    let t0 = std::time::Instant::now();
+    // let output = Command::new(tool_path).args(args).output()?;
+    let output = Command::new("/bin/sh")
+        .arg("-c")
+        .arg(args.iter().fold(tool_path, |acc, a| {
+            acc + " " + &a.as_ref().to_string_lossy()
+        }))
+        .output()?;
+    debug!(
+        "psrchive::{tool} finished in {}",
+        display_elapsed_time(t0.elapsed()),
+    );
 
-    if !output.status.success() {
-        return Err(ARPAError::ToolFailure(String::from(tool), output));
-    }
+    // if !output.status.success() {
+    //     return Err(ARPAError::ToolFailure(
+    //         tool.to_string(), output,
+    //     ));
+    // }
 
     if !output.stderr.is_empty() {
         warn!(
-            "Tool did not report a failure, but still printed the following\
-            to stderr: \n{}",
+            "Tool printed the following to stderr: \n{}",
             String::from_utf8_lossy(&output.stderr)
         );
+        return Err(ARPAError::ToolFailure(tool.to_string(), output));
     }
 
     debug!(
-        "-- stdout:\n{}\n-- stderr:\n{}",
+        "status: {} \n-- stdout:\n{}\n-- stderr:\n{}",
+        output.status,
         String::from_utf8_lossy(&output.stdout),
         String::from_utf8_lossy(&output.stderr),
     );
@@ -46,17 +88,42 @@ pub fn psrchive(config: &Config, tool: &str, args: &[&str]) -> Result<String> {
     Ok(result)
 }
 
-/// Calls `tempo2` to perform a fit.
+/// Checks if psrchive can be run.
 /// # Errors
-/// Fails if tempo fails.
-pub fn tempo2_fit(par_file: &str, tim_file: &str) -> Result<()> {
-    let result = Command::new("tempo2")
-        .arg("-f")
-        .arg(par_file)
-        .arg(tim_file)
-        .status()?;
+/// If any of the necessary psrchive tools can't be run.
+pub fn check_psrchive(config: &Config) -> Result<()> {
+    for tool in ["vap", "pam", "pat"] {
+        let tool_path = if config.paths.psrchive.is_empty() {
+            tool.to_string()
+        } else {
+            format!("{}/{}", config.paths.psrchive, tool)
+        };
 
-    info!("{result}");
+        let exists = std::process::Command::new("/bin/sh")
+            .arg("-c")
+            .arg(format!("command -v {tool_path}"))
+            .output()
+            .is_ok_and(|out| out.status.success());
+
+        if !exists {
+            return Err(ARPAError::MissingPsrchive(tool.to_string()));
+        }
+    }
 
     Ok(())
 }
+
+// /// Calls `tempo2` to perform a fit.
+// /// # Errors
+// /// Fails if tempo fails.
+// pub fn tempo2_fit(par_file: &str, tim_file: &str) -> Result<()> {
+//     let result = Command::new("tempo2")
+//         .arg("-f")
+//         .arg(par_file)
+//         .arg(tim_file)
+//         .status()?;
+
+//     info!("{result}");
+
+//     Ok(())
+// }

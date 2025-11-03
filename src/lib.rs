@@ -1,4 +1,5 @@
-//! A pulsar timing and metadata archive developed for ARGOS project (https://argos-telescope.eu/).
+//! A pulsar timing and metadata archive developed for ARGOS project
+//! <https://argos-telescope.eu/>.
 
 #![warn(missing_docs, clippy::all, clippy::pedantic, clippy::nursery)]
 #![allow(clippy::must_use_candidate)]
@@ -10,9 +11,11 @@ pub mod config;
 pub mod conveniences;
 pub mod diagnostics;
 mod error;
-pub mod external_tools;
+pub(crate) mod external_tools;
+pub use external_tools::check_psrchive;
+pub mod pipeline;
 
-pub use archivist::{Archivist, data_types, table::Table, table::TableItem};
+pub use archivist::{Archivist, data_types, table::TableItem};
 pub use error::ARPAError;
 
 pub(crate) type Result<T> = std::result::Result<T, ARPAError>;

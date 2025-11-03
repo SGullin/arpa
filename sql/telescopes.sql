@@ -16,7 +16,7 @@ insert into telescopes
 ('nancay',      4324165.81, 165927.11,  4670132.83,     'ncy',          'f'),
 ('wsrt',        3828445.659,445223.6,   5064921.5677,   'wsrt',         'i');
 
-create table if not exists obs_systems(
+create table if not exists obs_systems (
     id serial primary key,
     name text not null,
     telescope_id integer not null,
