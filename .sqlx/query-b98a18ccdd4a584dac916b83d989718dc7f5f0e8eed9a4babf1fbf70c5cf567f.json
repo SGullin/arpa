@@ -1,0 +1,14 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "delete from process_metas where id=$1;",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Int4"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "b98a18ccdd4a584dac916b83d989718dc7f5f0e8eed9a4babf1fbf70c5cf567f"
+}

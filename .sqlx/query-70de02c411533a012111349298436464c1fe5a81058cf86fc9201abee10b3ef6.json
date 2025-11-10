@@ -1,0 +1,62 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "select id,par_id,template_id,n_channels,n_subints,method,user_id,started_at from process_metas;",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Int4"
+      },
+      {
+        "ordinal": 1,
+        "name": "par_id",
+        "type_info": "Int4"
+      },
+      {
+        "ordinal": 2,
+        "name": "template_id",
+        "type_info": "Int4"
+      },
+      {
+        "ordinal": 3,
+        "name": "n_channels",
+        "type_info": "Int2"
+      },
+      {
+        "ordinal": 4,
+        "name": "n_subints",
+        "type_info": "Int2"
+      },
+      {
+        "ordinal": 5,
+        "name": "method",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 6,
+        "name": "user_id",
+        "type_info": "Int4"
+      },
+      {
+        "ordinal": 7,
+        "name": "started_at",
+        "type_info": "Timestamptz"
+      }
+    ],
+    "parameters": {
+      "Left": []
+    },
+    "nullable": [
+      false,
+      true,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false
+    ]
+  },
+  "hash": "70de02c411533a012111349298436464c1fe5a81058cf86fc9201abee10b3ef6"
+}

@@ -1,0 +1,40 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "select id,pulsar_id,file_path,checksum from template_metas where id=$1;",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Int4"
+      },
+      {
+        "ordinal": 1,
+        "name": "pulsar_id",
+        "type_info": "Int4"
+      },
+      {
+        "ordinal": 2,
+        "name": "file_path",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 3,
+        "name": "checksum",
+        "type_info": "Uuid"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Int4"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      false
+    ]
+  },
+  "hash": "a55974ee0844a1107bf90d9a3746cf7fb44cd71fbfcef34a4fe4ecbf3583978d"
+}

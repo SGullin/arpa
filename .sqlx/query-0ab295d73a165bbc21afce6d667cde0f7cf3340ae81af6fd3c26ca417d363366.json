@@ -1,0 +1,56 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "select id,alias,j_name,b_name,j2000_ra,j2000_dec,master_parfile_id from pulsar_metas;",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Int4"
+      },
+      {
+        "ordinal": 1,
+        "name": "alias",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 2,
+        "name": "j_name",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 3,
+        "name": "b_name",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 4,
+        "name": "j2000_ra",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 5,
+        "name": "j2000_dec",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 6,
+        "name": "master_parfile_id",
+        "type_info": "Int4"
+      }
+    ],
+    "parameters": {
+      "Left": []
+    },
+    "nullable": [
+      false,
+      false,
+      true,
+      true,
+      true,
+      true,
+      true
+    ]
+  },
+  "hash": "0ab295d73a165bbc21afce6d667cde0f7cf3340ae81af6fd3c26ca417d363366"
+}

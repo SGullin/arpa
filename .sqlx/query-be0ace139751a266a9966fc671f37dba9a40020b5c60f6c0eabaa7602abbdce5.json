@@ -1,0 +1,28 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "insert into process_metas(par_id,template_id,n_channels,n_subints,method,user_id,started_at) values($1,$2,$3,$4,$5,$6,$7) returning id;",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Int4"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Int4",
+        "Int4",
+        "Int2",
+        "Int2",
+        "Text",
+        "Int4",
+        "Timestamptz"
+      ]
+    },
+    "nullable": [
+      false
+    ]
+  },
+  "hash": "be0ace139751a266a9966fc671f37dba9a40020b5c60f6c0eabaa7602abbdce5"
+}

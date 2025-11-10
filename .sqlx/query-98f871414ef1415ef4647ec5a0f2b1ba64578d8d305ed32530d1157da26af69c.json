@@ -1,0 +1,38 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "select * from diag_plots;",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Int4"
+      },
+      {
+        "ordinal": 1,
+        "name": "process",
+        "type_info": "Int4"
+      },
+      {
+        "ordinal": 2,
+        "name": "diagnostic",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 3,
+        "name": "filepath",
+        "type_info": "Text"
+      }
+    ],
+    "parameters": {
+      "Left": []
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      false
+    ]
+  },
+  "hash": "98f871414ef1415ef4647ec5a0f2b1ba64578d8d305ed32530d1157da26af69c"
+}

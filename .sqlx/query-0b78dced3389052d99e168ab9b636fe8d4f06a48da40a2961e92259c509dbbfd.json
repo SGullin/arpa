@@ -1,0 +1,38 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "select * from template_metas;",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Int4"
+      },
+      {
+        "ordinal": 1,
+        "name": "pulsar_id",
+        "type_info": "Int4"
+      },
+      {
+        "ordinal": 2,
+        "name": "checksum",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 3,
+        "name": "file_path",
+        "type_info": "Text"
+      }
+    ],
+    "parameters": {
+      "Left": []
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      false
+    ]
+  },
+  "hash": "0b78dced3389052d99e168ab9b636fe8d4f06a48da40a2961e92259c509dbbfd"
+}

@@ -1,0 +1,20 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "update obs_systems set name=$1,telescope_id=$2,frontend=$3,backend=$4,clock=$5,code=$6 where id=$7;",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Text",
+        "Int4",
+        "Text",
+        "Text",
+        "Text",
+        "Text",
+        "Int4"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "a33cabc5d2b9ee05c5c9a0de718ef0fb345030a56c360a8869bb108a35d79d2b"
+}

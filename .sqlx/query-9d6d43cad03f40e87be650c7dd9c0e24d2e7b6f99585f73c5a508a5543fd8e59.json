@@ -1,0 +1,68 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "select * from toas;",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Int4"
+      },
+      {
+        "ordinal": 1,
+        "name": "process_id",
+        "type_info": "Int4"
+      },
+      {
+        "ordinal": 2,
+        "name": "template_id",
+        "type_info": "Int4"
+      },
+      {
+        "ordinal": 3,
+        "name": "pulsar_id",
+        "type_info": "Int4"
+      },
+      {
+        "ordinal": 4,
+        "name": "observer_id",
+        "type_info": "Int4"
+      },
+      {
+        "ordinal": 5,
+        "name": "toa_int",
+        "type_info": "Int4"
+      },
+      {
+        "ordinal": 6,
+        "name": "toa_frac",
+        "type_info": "Float8"
+      },
+      {
+        "ordinal": 7,
+        "name": "toa_err",
+        "type_info": "Float4"
+      },
+      {
+        "ordinal": 8,
+        "name": "frequency",
+        "type_info": "Float4"
+      }
+    ],
+    "parameters": {
+      "Left": []
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false
+    ]
+  },
+  "hash": "9d6d43cad03f40e87be650c7dd9c0e24d2e7b6f99585f73c5a508a5543fd8e59"
+}

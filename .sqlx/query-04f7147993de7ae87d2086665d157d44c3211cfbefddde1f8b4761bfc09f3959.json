@@ -1,0 +1,40 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "select id,process,diagnostic,result from diag_floats where id=$1;",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Int4"
+      },
+      {
+        "ordinal": 1,
+        "name": "process",
+        "type_info": "Int4"
+      },
+      {
+        "ordinal": 2,
+        "name": "diagnostic",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 3,
+        "name": "result",
+        "type_info": "Float4"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Int4"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      false
+    ]
+  },
+  "hash": "04f7147993de7ae87d2086665d157d44c3211cfbefddde1f8b4761bfc09f3959"
+}

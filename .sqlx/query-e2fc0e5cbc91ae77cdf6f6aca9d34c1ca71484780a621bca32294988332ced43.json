@@ -1,0 +1,38 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "select id,pulsar_id,checksum,file_path from par_metas;",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Int4"
+      },
+      {
+        "ordinal": 1,
+        "name": "pulsar_id",
+        "type_info": "Int4"
+      },
+      {
+        "ordinal": 2,
+        "name": "checksum",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 3,
+        "name": "file_path",
+        "type_info": "Text"
+      }
+    ],
+    "parameters": {
+      "Left": []
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      false
+    ]
+  },
+  "hash": "e2fc0e5cbc91ae77cdf6f6aca9d34c1ca71484780a621bca32294988332ced43"
+}

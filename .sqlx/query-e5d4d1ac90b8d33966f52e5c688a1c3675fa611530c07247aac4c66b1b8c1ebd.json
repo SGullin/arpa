@@ -1,0 +1,23 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "select id from users where username=$1 or email=$2;",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Int4"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Text",
+        "Text"
+      ]
+    },
+    "nullable": [
+      false
+    ]
+  },
+  "hash": "e5d4d1ac90b8d33966f52e5c688a1c3675fa611530c07247aac4c66b1b8c1ebd"
+}

@@ -1,0 +1,70 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "select id,process_id,template_id,pulsar_id,observer_id,toa_int,toa_frac,toa_err,frequency from toas where id=$1;",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Int4"
+      },
+      {
+        "ordinal": 1,
+        "name": "process_id",
+        "type_info": "Int4"
+      },
+      {
+        "ordinal": 2,
+        "name": "template_id",
+        "type_info": "Int4"
+      },
+      {
+        "ordinal": 3,
+        "name": "pulsar_id",
+        "type_info": "Int4"
+      },
+      {
+        "ordinal": 4,
+        "name": "observer_id",
+        "type_info": "Int4"
+      },
+      {
+        "ordinal": 5,
+        "name": "toa_int",
+        "type_info": "Int4"
+      },
+      {
+        "ordinal": 6,
+        "name": "toa_frac",
+        "type_info": "Float8"
+      },
+      {
+        "ordinal": 7,
+        "name": "toa_err",
+        "type_info": "Float4"
+      },
+      {
+        "ordinal": 8,
+        "name": "frequency",
+        "type_info": "Float4"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Int4"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false
+    ]
+  },
+  "hash": "88ec18fb9e8e2a9222c98f692a957ba73eef81929f428a676004ca22140c38ad"
+}
