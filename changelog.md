@@ -7,7 +7,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [0.3.5] 2026-02-09
 ### Changed
-- `sqlx` chached checks are now included in VH.
+- `sqlx` chached checks are now included in VC.
 - Format edits and better names. 
 
 ## [0.3.4] 2025-11-03
