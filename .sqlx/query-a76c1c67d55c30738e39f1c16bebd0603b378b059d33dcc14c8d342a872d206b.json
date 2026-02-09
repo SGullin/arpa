@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "update pulsar_metas set alias=$1,j_name=$2,b_name=$3,j2000_ra=$4,j2000_dec=$5,master_parfile_id=$6 where id=$7;",
+  "query": "update pulsars set alias=$1,j_name=$2,b_name=$3,j2000_ra=$4,j2000_dec=$5,master_parfile_id=$6 where id=$7;",
   "describe": {
     "columns": [],
     "parameters": {
@@ -16,5 +16,5 @@
     },
     "nullable": []
   },
-  "hash": "da14c30fdd31bf88f947d652bb03c0186a6e3225459de7b0107b8633ffa5699f"
+  "hash": "a76c1c67d55c30738e39f1c16bebd0603b378b059d33dcc14c8d342a872d206b"
 }

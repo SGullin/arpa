@@ -1,4 +1,4 @@
-use std::path::Path;
+use std::{fs::File, path::Path};
 
 use crate::{
     ARPAError, Result, config::Config, conveniences::parse,
@@ -188,4 +188,51 @@ impl RawFileHeader {
 
         Ok(values)
     }
+}
+
+#[test]
+fn bench_header() {
+    // use crate::conveniences::{display_elapsed_time, progress_bar};
+    let config = Config::default();
+
+    let path = "/Users/samuelgullin/argos-software/arpa-dev/test-data/combine_B1929+10.ar";
+    
+    let old = RawFileHeader::get(&config, path).expect("Should read");
+    let mut file = File::open(path).expect("No file");
+    // let new = psrutils::timer_archive::header::Header::load(&mut file, true).expect("Should read");
+
+    // println!("old\n{old:?}\n\nnew\n{new:?}");
+    
+    // let n = 32;
+    // let n_inv = 1./n as f32;
+    // let path = "/Users/samuelgullin/argos-software/arpa-dev/test-data/combine_B1929+10.ar";
+    
+    // let t0 = std::time::Instant::now();
+    // for k in 0..n {
+    //     _ = RawFileHeader::get(&config, path).expect("Should read");
+    //     progress_bar("Running old get", k as f32 * n_inv, 32);
+    // }
+    // let dt_old = t0.elapsed();
+
+    // let t0 = std::time::Instant::now();
+    // for k in 0..n {
+    //     let mut file = File::open(path).expect("No file");
+    //     _ = psrutils::timer_archive::header::Header::load(&mut file, true).expect("Should read");
+    //     progress_bar("Running new get", k as f32 * n_inv, 32);
+    // }
+    // let dt_new = t0.elapsed();
+
+    // println!(
+    //     "\n{n} iters: \n
+    //     Old:\n\
+    //     \ttotal: {}\n\taverage: {}\n\
+    //     New:\n\
+    //     \ttotal: {}\n\taverage: {}
+    //     Improvement: {:.3} %",
+    //     display_elapsed_time(dt_old),
+    //     display_elapsed_time(dt_old / n as u32),
+    //     display_elapsed_time(dt_new),
+    //     display_elapsed_time(dt_new / n as u32),
+    //     100.*((dt_old.as_secs_f64() - dt_new.as_secs_f64()) / dt_old.as_secs_f64()),
+    // )
 }

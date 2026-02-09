@@ -16,7 +16,7 @@ use crate::{
     config::Config,
     conveniences::{assert_exists, compute_checksum, parse},
     data_types::{
-        DiagnosticPlot, ParMeta, ProcessInfo, PulsarMeta, RawFileHeader,
+        DiagnosticPlot, ParMeta, ProcessInfo, Pulsar, RawFileHeader,
         RawMeta, TOAInfo, TemplateMeta,
     },
     diagnostics::run_diagnostic,
@@ -90,7 +90,7 @@ impl Pipeline {
         let start_time = sqlx::types::time::OffsetDateTime::now_utc();
 
         let pulsar_name = archivist
-            .get::<PulsarMeta>(self.raw.pulsar_id)
+            .get::<Pulsar>(self.raw.pulsar_id)
             .await
             .inspect_err(|e| callback(Status::Error(e.to_string())))?
             .alias;
@@ -195,7 +195,7 @@ fn manipulate<F: Fn(Status)>(
     ));
     std::fs::copy(raw_path, tmp_path)?;
 
-    // > If parfile: reinstall ephemerides with pam -----------------------
+    // If parfile: reinstall ephemerides with pam -----------------------------
     if let Some(par) = ephemeride {
         status_callback(Status::InstallingEphemeride);
         // Threre's no output...
@@ -214,10 +214,10 @@ fn manipulate<F: Fn(Status)>(
 
     // Make a new file for manipulating
     // manipulate_pam(config, tmp_path, 1, 4, None, None, status_callback)
-    manipulate_pam(config, tmp_path, settings, status_callback)
+    scrunch(config, tmp_path, settings, status_callback)
 }
 
-fn manipulate_pam<F: Fn(Status)>(
+fn scrunch<F: Fn(Status)>(
     config: &Config,
     path: &Path,
     settings: &PipelineSettings,
@@ -271,7 +271,7 @@ fn generate_toas<F: Fn(Status)>(
 ) -> Result<TOAMeta> {
     status_callback(Status::VerifyingTemplate);
 
-    // Double check cheksum
+    // Double check template cheksum
     let checksum = compute_checksum(&template.file_path, true)?;
     if checksum != template.checksum.as_u128() {
         return Err(ARPAError::ChecksumFail(template.file_path.clone()));
@@ -315,8 +315,10 @@ fn generate_toas<F: Fn(Status)>(
     debug!("Got header!");
 
     let secs = (parse::<f32>(&header[4])? * 24. * 3600.).round() as u32;
-    let mut toas: Vec<String> =
-        result.lines().map(ToString::to_string).collect();
+    let mut toas = result
+        .lines()
+        .map(ToString::to_string)
+        .collect::<Vec<_>>();
     toas.remove(0); // The format specifier
 
     status_callback(Status::GotTOAs(toas.len()));
@@ -359,17 +361,15 @@ async fn archive_toas<F: Fn(Status)>(
     let toas = toa_meta
         .toas
         .iter()
-        .map(|l| {
-            TOA::from_line_tempo2(l).map(|toa| {
-                TOAInfo::extract(
-                    &toa,
-                    raw.pulsar_id,
-                    raw.observer_id,
-                    process_id,
-                    template.id,
-                )
-            })
-        })
+        .map(|l| TOA::from_line_tempo2(l)
+            .map(|toa| TOAInfo::extract(
+                &toa,
+                raw.pulsar_id,
+                raw.observer_id,
+                process_id,
+                template.id,
+            ))
+        )
         .collect::<std::result::Result<Vec<_>, _>>()?;
 
     let mut ids = Vec::with_capacity(toas.len());

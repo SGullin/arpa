@@ -159,17 +159,15 @@ impl Archivist {
         })
     }
 
-    /// Adds a new entry to `T::TABLE`, making sure no unique fields are
-    /// duplicated.
+    /// Gets an item whose id you know.
     ///
-    /// Returns the id of the newly inserted item.
     /// # Errors
-    /// Fails if there are collisions in the table. Forwards errors from `sqlx`.
-    pub async fn insert<T: TableItem>(&mut self, item: T) -> Result<i32> {
-        self.assert_unique(&item).await?;
-        let tx = self.get_transaction().await?;
-
-        item.insert(tx).await.map_err(ArchivistError::Sqlx)
+    /// Forwards errors from `sqlx`.
+    pub async fn get<T: TableItem>(&self, id: i32) -> Result<T> {
+        self.assert_exists::<T>(id).await?;
+        T::select_by_id(&self.pool, id)
+            .await
+            .map_err(ArchivistError::Sqlx)
     }
 
     /// Gets all items from `T::TABLE`.
@@ -192,10 +190,7 @@ impl Archivist {
     ///
     /// # Errors
     /// Forwards errors from `sqlx`.
-    pub async fn find<T: TableItem>(
-        &self,
-        condition: &str,
-    ) -> Result<Option<T>> {
+    pub async fn find<T: TableItem>(&self, condition: &str, ) -> Result<Option<T>> {
         let query = format!("select id from {} where {};", T::TABLE, condition);
 
         let opt_id: Option<(i32,)> =
@@ -212,6 +207,19 @@ impl Archivist {
             .map(|i| Some(i))
     }
 
+    /// Adds a new entry to `T::TABLE`, making sure no unique fields are
+    /// duplicated.
+    ///
+    /// Returns the id of the newly inserted item.
+    /// # Errors
+    /// Fails if there are collisions in the table. Forwards errors from `sqlx`.
+    pub async fn insert<T: TableItem>(&mut self, item: T) -> Result<i32> {
+        self.assert_unique(&item).await?;
+        let tx = self.get_transaction().await?;
+
+        item.insert(tx).await.map_err(ArchivistError::Sqlx)
+    }
+
     /// Update an entry with the given `id` in the given `table`. `value` in
     /// this case is a string like `number = 2`, i.e. both the column and the
     /// actual value.
@@ -223,11 +231,7 @@ impl Archivist {
     ///
     /// # Errors
     /// Forwards errors from `sqlx`.
-    pub async fn update<T: TableItem>(
-        &mut self,
-        id: i32,
-        value: &str,
-    ) -> Result<()> {
+    pub async fn update<T: TableItem>(&mut self, id: i32, value: &str, ) -> Result<()> {
         self.assert_exists::<T>(id).await?;
 
         let query = format!("update {} set {value} where id={id};", T::TABLE,);
@@ -242,26 +246,11 @@ impl Archivist {
     ///
     /// # Errors
     /// Forwards errors from `sqlx`.
-    pub async fn update_from_cache<T: TableItem>(
-        &mut self,
-        cache: &T,
-        id: i32,
-    ) -> Result<()> {
+    pub async fn update_from_cache<T: TableItem>(&mut self, cache: &T, id: i32,) -> Result<()> {
         self.assert_exists::<T>(id).await?;
         let tx = self.get_transaction().await?;
 
         cache.update(tx, id).await.map_err(ArchivistError::Sqlx)
-    }
-
-    /// Gets an item whose id you know.
-    ///
-    /// # Errors
-    /// Forwards errors from `sqlx`.
-    pub async fn get<T: TableItem>(&self, id: i32) -> Result<T> {
-        self.assert_exists::<T>(id).await?;
-        T::select_by_id(&self.pool, id)
-            .await
-            .map_err(ArchivistError::Sqlx)
     }
 
     /// Deletes an item from a table. Make sure you are providing the correct
@@ -293,14 +282,7 @@ impl Archivist {
     ///
     /// # Errors
     /// Forwards errors from `sqlx`.
-    pub async fn get_special<T: TableItem, U>(
-        &self,
-        columns: &str,
-        condition: &str,
-    ) -> Result<Option<U>>
-    where
-        for<'r> U: FromRow<'r, PgRow> + Send + Unpin,
-    {
+    pub async fn get_special<T: TableItem, U>(&self, columns: &str, condition: &str, ) -> Result<Option<U>> where for<'r> U: FromRow<'r, PgRow> + Send + Unpin {
         let query = format!(
             "select {columns} from {} where {condition} limit 1;",
             T::TABLE,

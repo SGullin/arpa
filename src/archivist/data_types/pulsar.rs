@@ -7,19 +7,24 @@ use item_macro::TableItem;
 use crate::{ARPAError, archivist::TableItem};
 
 #[derive(
-    Debug, sqlx::FromRow, TableItem, Clone, serde::Serialize, serde::Deserialize,
+    Debug, 
+    Clone, 
+    sqlx::FromRow, TableItem, 
+    serde::Serialize, serde::Deserialize,
 )]
-#[table(pulsar_metas)]
+#[table(pulsars)]
 /// Metadata of a pulsar.
-pub struct PulsarMeta {
+pub struct Pulsar {
     /// Mandatory id.
     #[derived]
     pub id: i32,
 
     /// What this pulsar is commonly called.
+    #[unique]
     pub alias: String,
     /// The J name, if different from the alias.
     pub j_name: Option<String>,
+    
     /// The B name, if any and different from the alias.
     pub b_name: Option<String>,
 
@@ -31,7 +36,7 @@ pub struct PulsarMeta {
     /// The id of a master ephemeride, if it has any set.
     pub master_parfile_id: Option<i32>,
 }
-impl PulsarMeta {
+impl Pulsar {
     /// Verifies the data is valid.
     /// # Errors
     /// Each field, except for `master_partfile_id`, is verified, and any
@@ -194,7 +199,7 @@ impl PulsarMeta {
 //         )
 //     }
 // }
-impl FromStr for PulsarMeta {
+impl FromStr for Pulsar {
     type Err = ARPAError;
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {

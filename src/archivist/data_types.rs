@@ -3,7 +3,7 @@
 mod diagnostics;
 mod par_meta;
 mod process_meta;
-mod pulsar_meta;
+mod pulsar;
 mod raw_meta;
 mod telescope;
 mod template_meta;
@@ -13,7 +13,7 @@ mod user;
 pub use diagnostics::{DiagnosticFloat, DiagnosticPlot};
 pub use par_meta::ParMeta;
 pub use process_meta::ProcessInfo;
-pub use pulsar_meta::PulsarMeta;
+pub use pulsar::Pulsar;
 pub use raw_meta::{RawFileHeader, RawMeta, archive_file};
 pub use telescope::{ObsSystem, TelescopeId};
 pub use template_meta::TemplateMeta;

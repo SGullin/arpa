@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "select id,alias,j_name,b_name,j2000_ra,j2000_dec,master_parfile_id from pulsar_metas;",
+  "query": "select * from pulsars;",
   "describe": {
     "columns": [
       {
@@ -52,5 +52,5 @@
       true
     ]
   },
-  "hash": "0ab295d73a165bbc21afce6d667cde0f7cf3340ae81af6fd3c26ca417d363366"
+  "hash": "53e1ab13b52ce9fa0403f5a1ecedbcd7edb3123b7e04c207d53072987c3f47cb"
 }

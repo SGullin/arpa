@@ -7,7 +7,9 @@ use crate::archivist::ArchivistError;
 pub enum ARPAError {
     TokioJoinError(tokio::task::JoinError),
     IOFault(std::io::Error),
-    PSRUtils(psrutils::error::PsruError),
+    Psrutils(psrutils::error::PsruError),
+    // TimFile(psrutils::timfile::TimError),
+    // J2000Parse(psrutils::error::J2000ParseError),
     ToolFailure(String, Output),
     JoinThread(String),
     ConfigLoadFailure(toml::de::Error),
@@ -41,7 +43,9 @@ impl std::fmt::Display for ARPAError {
         match self {
             Self::TokioJoinError(error) => write!(f, "[tokio] {error}",),
             Self::IOFault(error) => write!(f, "[std::io] {error}",),
-            Self::PSRUtils(error) => write!(f, "[psrutils] {error}",),
+            Self::Psrutils(error) => write!(f, "[psrutils] {error}",),
+            // Self::TimFile(error) => write!(f, "[psrutils::tim] {error}"),
+            // Self::J2000Parse(error) => write!(f, "[psrutils::J2000] {error}"),
             Self::ToolFailure(tool, out) => write!(
                 f,
                 "Tool \"{}\" failed{}\n-- stdout:\n{}\n-- stderr:\n{}",
@@ -139,9 +143,19 @@ impl From<std::io::Error> for ARPAError {
         Self::IOFault(value)
     }
 }
+// impl From<psrutils::error::TimError> for ARPAError {
+//     fn from(value: psrutils::error::TimError) -> Self {
+//         Self::TimFile(value)
+//     }
+// }
+// impl From<psrutils::error::J2000ParseError> for ARPAError {
+//     fn from(value: psrutils::error::J2000ParseError) -> Self {
+//         Self::J2000Parse(value)
+//     }
+// }
 impl From<psrutils::error::PsruError> for ARPAError {
     fn from(value: psrutils::error::PsruError) -> Self {
-        Self::PSRUtils(value)
+        Self::Psrutils(value)
     }
 }
 impl From<FromUtf8Error> for ARPAError {
