@@ -1,0 +1,56 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "select * from telescopes;",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Int4"
+      },
+      {
+        "ordinal": 1,
+        "name": "name",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 2,
+        "name": "abbreviation",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 3,
+        "name": "code",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 4,
+        "name": "itrf_x",
+        "type_info": "Float8"
+      },
+      {
+        "ordinal": 5,
+        "name": "itrf_y",
+        "type_info": "Float8"
+      },
+      {
+        "ordinal": 6,
+        "name": "itrf_z",
+        "type_info": "Float8"
+      }
+    ],
+    "parameters": {
+      "Left": []
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false
+    ]
+  },
+  "hash": "f2080beef8bff371d48bd491c56030f40cbe7d7f271b4096e70783cb8912d51f"
+}

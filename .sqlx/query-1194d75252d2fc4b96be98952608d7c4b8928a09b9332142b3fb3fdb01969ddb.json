@@ -1,0 +1,17 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "update diag_floats set process=$1,diagnostic=$2,result=$3 where id=$4;",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Int4",
+        "Text",
+        "Float4",
+        "Int4"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "1194d75252d2fc4b96be98952608d7c4b8928a09b9332142b3fb3fdb01969ddb"
+}

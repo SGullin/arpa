@@ -1,6 +1,5 @@
 /target
 sql/
-.sqlx/
 Cargo.lock
 reset.sh
 .env

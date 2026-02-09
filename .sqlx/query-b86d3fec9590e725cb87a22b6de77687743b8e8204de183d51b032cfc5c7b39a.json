@@ -1,0 +1,17 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "update diag_plots set process=$1,diagnostic=$2,filepath=$3 where id=$4;",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Int4",
+        "Text",
+        "Text",
+        "Int4"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "b86d3fec9590e725cb87a22b6de77687743b8e8204de183d51b032cfc5c7b39a"
+}

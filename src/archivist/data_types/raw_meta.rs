@@ -4,7 +4,7 @@ use crate::{
     ARPAError, Archivist, Result,
     archivist::table::TableItem,
     conveniences::{assert_exists, check_file_equality, compute_checksum},
-    data_types::{ObsSystem, PulsarMeta},
+    data_types::{ObsSystem, Pulsar},
 };
 use log::{debug, info, warn};
 use serde::{Deserialize, Serialize};
@@ -65,7 +65,7 @@ impl RawMeta {
 
         // Get pulsar name
         let res = archivist
-            .find::<PulsarMeta>(&format!("alias='{}'", &header.psr_name))
+            .find::<Pulsar>(&format!("alias='{}'", &header.psr_name))
             .await?;
 
         let pulsar_id = if let Some(r) = res {
@@ -81,7 +81,7 @@ impl RawMeta {
             }
 
             info!("Adding pulsar '{}'", &header.psr_name);
-            let mut meta = PulsarMeta {
+            let mut meta = Pulsar {
                 id: 0,
                 alias: header.psr_name.to_string(),
                 j_name: None,

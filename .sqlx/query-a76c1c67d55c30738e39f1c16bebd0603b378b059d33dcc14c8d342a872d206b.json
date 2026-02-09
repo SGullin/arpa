@@ -1,0 +1,20 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "update pulsars set alias=$1,j_name=$2,b_name=$3,j2000_ra=$4,j2000_dec=$5,master_parfile_id=$6 where id=$7;",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Text",
+        "Text",
+        "Text",
+        "Text",
+        "Text",
+        "Int4",
+        "Int4"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "a76c1c67d55c30738e39f1c16bebd0603b378b059d33dcc14c8d342a872d206b"
+}

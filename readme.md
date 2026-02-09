@@ -58,7 +58,7 @@ If you fork this and want to add more tables, the [derive macro](https://github.
 In the future, support will be added for custom tables without forking.
 
 ## GUI
-There is a GUI application being developed for internal use, publicly available at https://github.com/SGullin/arpa-gui.
+There is a GUI application being developed for internal use, publically available at https://github.com/SGullin/arpa-gui.
 
 # License
 `argos-arpa` is distributed under the terms of the [MIT License](LICENSE-MIT).

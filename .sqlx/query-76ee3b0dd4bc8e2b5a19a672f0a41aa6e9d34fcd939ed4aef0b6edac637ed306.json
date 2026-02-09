@@ -1,0 +1,14 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "delete from diag_plots where id=$1;",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Int4"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "76ee3b0dd4bc8e2b5a19a672f0a41aa6e9d34fcd939ed4aef0b6edac637ed306"
+}

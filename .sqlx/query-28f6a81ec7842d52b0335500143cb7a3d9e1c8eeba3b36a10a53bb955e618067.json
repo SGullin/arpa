@@ -1,0 +1,56 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "select * from obs_systems;",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Int4"
+      },
+      {
+        "ordinal": 1,
+        "name": "name",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 2,
+        "name": "telescope_id",
+        "type_info": "Int4"
+      },
+      {
+        "ordinal": 3,
+        "name": "frontend",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 4,
+        "name": "backend",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 5,
+        "name": "clock",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 6,
+        "name": "code",
+        "type_info": "Text"
+      }
+    ],
+    "parameters": {
+      "Left": []
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false
+    ]
+  },
+  "hash": "28f6a81ec7842d52b0335500143cb7a3d9e1c8eeba3b36a10a53bb955e618067"
+}

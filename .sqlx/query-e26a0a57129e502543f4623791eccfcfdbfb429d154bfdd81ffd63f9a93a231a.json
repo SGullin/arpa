@@ -1,0 +1,17 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "update template_metas set pulsar_id=$1,file_path=$2,checksum=$3 where id=$4;",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Int4",
+        "Text",
+        "Uuid",
+        "Int4"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "e26a0a57129e502543f4623791eccfcfdbfb429d154bfdd81ffd63f9a93a231a"
+}
